@@ -1,0 +1,4 @@
+baseURL = 'http://localh0st.run'
+languageCode = 'en-us'
+title = 'localh0st.run'
+theme = ['hugo-video','fuji']
