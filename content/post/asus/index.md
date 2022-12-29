@@ -2,6 +2,7 @@
 title: "Stored XSS & Authenticated RCE in Asus httpd"
 date: 2022-04-10T04:10:23Z
 draft: true
+tags: ["asus", "exploit"]
 ---
 
 My whole perspective on "modern appliances" changed within the last few years, and I've started to look at things with a different mindset. In the past I've avoided anything "smart" because I didn't want it on my home network. Perhaps the utility of some of them slowly won me over (read: neat stuff they do), but these days if I'm looking to buy something, most of the time it gets bonus points for being "smart". I just want to take them home, connect them to my lab wifi and hack them. For instance, we just got a smart humidifier. What the hell? Why would they make that? Convenience I guess, but it's awesome and I can't wait to scan it.<!--more-->

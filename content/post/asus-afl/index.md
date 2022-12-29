@@ -1,33 +1,44 @@
 ---
-title: "Asus Emulation Afl"
+title: "Asus, Qemu, AFL++ Notes"
 date: 2022-12-29T01:00:00Z
 draft: true
+tags: ["AFL", "Asus", "qemu", "emulation"]
 ---
 
-## Asus Emulation Notes:
+This post is just a collection of my notes and experiences reversing, compiling and emulating Asus proprietary and Asuswrt-Merlin software, on an Ubuntu 20.04 box. It's a bit of a pain really, I thought it would be pretty easy but everything's been an issue, which is also what makes it sorta fun.
 
-https://resources.infosecinstitute.com/topic/fundamentals-of-iot-firmware-reverse-engineering/
-https://gitbook.seguranca-informatica.pt/arm/reverse-iot-devices/reverse-asus-rt-ac5300#emulation-nvram
-https://www.zerodayinitiative.com/blog/2020/5/27/mindshare-how-to-just-emulate-it-with-qemu
+Worked primarily with https://github.com/RMerl/asuswrt-merlin.ng for the RT-AX88U router, but some binaries are just closed-source :/<!--more-->
 
+----------
+
+Various, helpful and unhelpful links:
+
+- https://resources.infosecinstitute.com/topic/fundamentals-of-iot-firmware-reverse-engineering/
+- https://gitbook.seguranca-informatica.pt/arm/reverse-iot-devices/reverse-asus-rt-ac5300#emulation-nvram
+- https://www.zerodayinitiative.com/blog/2020/5/27/mindshare-how-to-just-emulate-it-with-qemu
+
+#### Source, toolchain, compiling
 First off, setup the system and build the toolchains as the directions show in merlin.ng: https://github.com/RMerl/asuswrt-merlin.ng/wiki/Compile-Firmware-from-source
 
-
-### Clone down arm static
+#### Clone down arm static bins
 
 - strace
 - gdb
+- etc
 
-### Clone libnvram
+### NVRAM
+
+One of the things that makes this such a pain is needing to get the nvram set up. I used Firmadyne's libnvram project for this: https://github.com/firmadyne/libnvram
+
+#### Clone libnvram
 
 `git clone https://github.com/firmadyne/libnvram.git`
 
-
-on router:
+Run this on router:
 
 `admin@RT-AX88U-C100:/tmp/home/root# nvram getall`
 
-Copy nvram values out, regex to fix for config.h format-- careful with ones that have "=" in em, e.g.
+Copy nvram values out, regex to fix for fimadyne's config.h format-- careful with ones that have "=" in em, e.g.
 
 `ENTRY("http_passwd", nvram_set, "+S8a5usKANuNzKOaPXpI0Js0McOBF2Mgjz0/x9AR8YM") \`
 
@@ -39,7 +50,7 @@ Brutal regex thing for creating nvram files
 
 `tester@asuserlin-ubuntu20:~/amng-build/release/src-rt-5.02axhnd/targets/94908HND/fs$ while read line; do test=$(echo $line | sed 's/ABAB.*//'); test2=$(echo $line | sed -E 's/.*ABAB//'); echo -n $test2 > "firmadyne/libnvram/$test" ; done < nvrams`
 
-with nvrams file containing keys like 'vpn_client5_portABAB1194'. Dumb, but it works
+with nvrams file containing keys like `vpn_client5_portABAB1194`. Dumb, but it works
 
 Script for rebuilding httpd and relaunching qemu with the updated version:
 
@@ -52,14 +63,16 @@ sudo chroot . ./qemu-arm-static /bin/sh
 
 `sudo chroot . ./qemu-arm-static -E LD_PRELOAD=/firmadyne/libnvram.so /bin/sh`
 
-Annoying to deal with https stuff on stratup, edited out the https stuff
+still many nvram errors, just keep fixing them as they come up, or edit them out of source, I guess.
+
+Annoying to deal with https stuff on stratup, commented out the https stuff
 
 524d9c08074d62b145d44001c78f0e65
 
 
 ## cfg_server
 
-First, created the directories I saw from a real Router
+First, created the directories I saw from a real Router, an AC-1900
 
 ```bash
 mkdir etc/cfg_mount
@@ -174,18 +187,7 @@ It worked! How cool. Now it's running, but it fails :((
 [cm_task(10273)]:get interface information failed
 
 ----asusdebuglog no unlock ------------
-
 [...]
-
-1160001 openat(AT_FDCWD,"/tmp/cprintf",O_WRONLY|O_APPEND|O_CREAT,0666) = 19
-1160001 _llseek(19,0,0,0xfffeedb8,SEEK_END) = 0
-1160001 fstat64(19,0xfffee898) = 0
-1160001 write(19,0x9d518,42) = 42
-1160001 close(19) = 0
-1160001 write(1,0x9c4c8,13)Exit daemon!
-= 13
-1160001 futex(0xff6a45b0,FUTEX_PRIVATE_FLAG|FUTEX_WAKE,2147483647,NULL,NULL,0) = 0
-1160001 exit_group(0)
 ```
 
 It bails out trying to get networking information for br0 -- looking at the ghidra, this checks out, fails in this section send it back to the entry point and exit
@@ -254,18 +256,19 @@ Looking at the cprintf file, now seeing more stuff, and some stuff about receive
 [cm_processConnDiagPkt(300)]:fail to process corresponding packet
 ```
 
-First calls cm_rcvUdpHandler(), believe this is triggered by the router at 192.168.1.2, it's preiodically broadcasting a message on UDP/7788 so this makes sense
+First calls `cm_rcvUdpHandler()`, believe this is triggered by the router at 192.168.1.2, it's preiodically broadcasting a message on UDP/7788 so this makes sense
 
 Can enable better debugging by creating the following nvrams
 
+```
 cfg_syslog
 cfg_dbg
 asuslog_debug_test
 debug_cprintf_file
 
-    tmp/cfg_mnt.log
-    tmp/asusdebuglog/cfg_mnt.log
-
+touch tmp/cfg_mnt.log
+touch tmp/asusdebuglog/cfg_mnt.log
+```
 
 Alright, so looking at the above, we see what's happening, some sort of key / encryption issue based on the key times
 ```
@@ -281,16 +284,21 @@ Alright, so looking at the above, we see what's happening, some sort of key / en
 
 So, the "gKey1Time" epoch timestamps is 1665578564, or, the current time.
 
+Maybe can generate a fake key or something?
+
+### AFL -> cfg_server
+
 Can use defork  and desock from preeny
 `sudo chroot . ./qemu-arm-static -E LD_PRELOAD=/firmadyne/libnvram.so:/desock.so:/defork.so /usr/sbin/cfg_server`
 
-^ runs... exits :/
+^ runs... exits :/ Might be OK?
 
+Need a seed, previously captured some 7788/udp traffic
 
-=========================================
+[...]
 
+## httpd... crash?
 
-## httpd
 The httpd crash is from sending a digit as the first character of the payload body happens in httpd.c, around line 1605 in handler->output(file, conn_fp);
 ```C
 }
@@ -337,9 +345,9 @@ PWD env var doesnt seem to work, trying symlink
 
 `sudo chroot . ./qemu-arm-static -E LD_PRELOAD=/firmadyne/libnvram.so /usr/sbin/httpd`
 
-Now to set up afl++?
+Now to set up afl++? Need to get the bin accepting requests from stdin, and exit after the request is handled
 
-Modiffied source to exit after request is handled:
+Modified source to exit after request is handled:
 ```C
 if(filter_ban_ip())
 {
@@ -350,15 +358,16 @@ if(filter_ban_ip())
 }
 ```
 
-took a lot of work but got the bin reading in and processing requests from files, still fighting with the output though, its writing to the same file which appends the "input" and for some reason does not crash?
+That defo works
 
-this turtned out to be pretty simple:
+took a lot of work but I got the bin reading in and processing requests from files, still fighting with the output though, its writing to the same file used as input, which appends it with the response and for some reason does not crash?
 
-handle_request():
-Added in
+OK, after more editing I realized it is very simple to get httpd accepting requests from stdin:
+
+within `handle_request()`, near it's declaration you need to add:
 ```C
   /* Parse the first line of the request. */
-	conn_fp = fopen(inputFile, "rw+");
+	conn_fp = fopen(inputFile, "rw+"); // <-- this
 ```
 
 and in main():
@@ -372,15 +381,15 @@ conn_list_t pool;
 int i, c;
 //int do_ssl = 0;
 
-inputFile = argc[argv - 1];
-fprintf(stderr, inputFile);
-fprintf(stderr, "\n");
-handle_request();
-fprintf(stderr, "Exit handle_request()\n");
-exit(1);
+inputFile = argc[argv - 1]; // Add this
+handle_request(); // and this
+fprintf(stderr, "Exit handle_request()\n"); // meh
+exit(1); // and this
+
+[...]
 ```
 
-Sttill some issues but the io works:
+Sttill a few issues but the io works:
 
 ```bash
 $ cat http_request
@@ -416,6 +425,11 @@ File not found.
 </BODY></HTML>
 ```
 
+It's writing it's output after the input, and *doesn't* crash. Not sure if that's good or bad for this, probably bad, but I still fuzzed.
+
+
+### AFL -> httpd
+
 Used afl++ in qemu mode to begin fuzzing the httpd bin using a few example requests and a dictionary file from: https://github.com/antonio-morales/Apache-HTTP-Fuzzing
 
 install AFLplusplus: https://aflplus.plus/building/
@@ -424,23 +438,27 @@ Compile for QEMU with arm support:
 
 `~/AFLplusplus/qemu_mode$ CPU_TARGET=arm ./build_qemu_support.sh`
 
+Using mime_handlers and httpd.c and httpd.h I created a small dictionary which contains the contents of /www/, common headers, specific headers and anything else interesting, based off of the dict mentioned above
+
 Then:
 
 `tester@asuserlin-ubuntu20:~/amng-build/release/src-rt-5.02axhnd/targets/94908HND/fs$ QEMU_LD_PREFIX=/home/tester/amng-build/release/src-rt-5.02axhnd/targets/94908HND/fs/ /home/tester/AFLplusplus/afl-fuzz -Q -i /home/tester/afl-in/ -o /home/tester/afl-out/ -x /home/tester/http.dict -- usr/sbin/httpd @@`
 
-Using mime_handlers and httpd.c and httpd.h I created a small dictionary which contains the contents of /www/, common headers, specific headers and anything else interesting, based off of the dict used in the above github link
+This works... sorta, but since AFL is built for fuzzing random binary data it's not "context aware" and has no idea how to fuzz data with any structure, or grammar, so it just throws fuck all at it and watches what happens. To perform more targetted fuzzing for languages like HTTP, which expect requests to be in specific formats and are parsed for specific keywords and structures, there are cool AFL tools like [Grammar Mutator](https://github.com/AFLplusplus/Grammar-Mutator). 
 
+### Custom Mutators-- teaching AFL http
 
 Followed tutorials on custom grammar:
 https://github.com/AFLplusplus/Grammar-Mutator
-
 
 Cloned mutator to AFL dir
 
 `export AFL_CUSTOM_MUTATOR_LIBRARY=/home/tester/AFLplusplus/Grammar-Mutator/libgrammarmutator-http.so`
 `export AFL_CUSTOM_MUTATOR_ONLY=1`
 
-edit mutator to be more targeted, then
+ended up just running commands and just including the mutator var
+
+edit mutator to be more targeted-- this is so sick, then
 
 `make GRAMMAR_FILE=grammars/http.json`
 
@@ -456,8 +474,7 @@ kicked it off with seeds
 
 `$ AFL_CUSTOM_MUTATOR_LIBRARY=/home/tester/AFLplusplus/Grammar-Mutator/libgrammarmutator-http.so AFL_CUSTOM_MUTATOR_ONLY=1 QEMU_LD_PREFIX=/home/tester/amng-build/release/src-rt-5.02axhnd/targets/94908HND/fs/ /home/tester/AFLplusplus/afl-fuzz -Q -i /home/tester/AFLplusplus/Grammar-Mutator/seeds/ -o /home/tester/afl-out/ -M http-1 -- usr/sbin/httpd @@`
 
-
-Constant tuning of grammar, creating  "definitions" for the data structure I'd like to fuzz. It's begun to get a little unwieldly as I began to add more and more POST and GET params, so I'm seeing the benefits of having fuzzers hitting specific functionality only. This make sense as it's more of a targetted approach than casting a wide net, making it possible to fuzz individual requests very thoroughly. It's probably possible to create one giant definition file for the grammar stuff but I think it wastes a LOT of cycles touching stuff that is useless.
+Constant tuning of grammar, creating  "definitions" for the data structure I'd like to fuzz. It's begun to get a little unwieldly as I began to add more and more POST and GET params, so I'm seeing the benefits of having fuzzers hitting specific functionality only. This makes sense as it's more of a targetted approach than casting a wide net, making it possible to fuzz individual requests very thoroughly. It's probably possible to create one giant definition file for the grammar stuff but I think it wastes a LOT of cycles touching stuff that is useless.
 
 So, I began to rewrite the grammar for requests which I've found vulns in already.
 
@@ -474,5 +491,6 @@ Authorization: /apps_test.asp?w=t
 apps_action=enable&apps_action=remove&apps_action=update&
 ```
 
+Neat, that was generated by a more specific http.json format! Need to figure out the length of the body for Content-Length 
 
-
+As I get more specific in my grammar mutation I'm also finding overlap between tools like AFL and Burp, which is interesting

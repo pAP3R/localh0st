@@ -1,7 +1,8 @@
-baseURL = 'http://localh0st.run'
+baseURL = 'https://localh0st.run'
 languageCode = 'en-us'
 title = 'localh0st.run'
-theme = ['hugo-video','fuji']
+#theme = ['hugo-video','classless-blog'] 
+theme = ['hugo-video','fuji'] 
 hasCJKLanguage = true
 enableEmoji = true
 enableRobotsTXT = true
@@ -27,9 +28,12 @@ weight = 3
 [markup.goldmark.renderer]
 unsafe = true # Enable user to embed HTML snippets in Markdown content
 [markup.highlight]
-codeFences = false # Disable Hugo's code highlighter
+codeFences = true # Disable Hugo's code highlighter
 
 sourceURL = "https://localh0st.run"
 
 [params]
 author = "howard"
+
+baseURL = 'https://localh0st.run'
+baseurl = "https://localh0st.run"

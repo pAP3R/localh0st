@@ -1,7 +1,8 @@
 ---
-title: "Pfsense"
+title: "Pfsense Update"
 date: 2022-07-20T18:06:10Z
 draft: true
+tags:  ["pfsense","homelab"]
 ---
 
 ## Homelab pfsense Update
@@ -37,7 +38,7 @@ Once I made sure everything fit (and worked, lol, had to fight with the NIC) I w
 
 Next up was actually crimping some new CAT6 through the case. Since the ethernet routes through the headphone / mic jack, ya gotta wire the cables through those holes initially. This wasn't really an issue, just more of a pain than I anticipated, I guess, though it was super cool at the end:
 
-And OK I KNOW that the 240w PSU in the optiplex isn't actually pulling 240, and realistically likely not much more than the HP, but ~~who cares~~ the new HP pfsense is shweet. 
+And OK I KNOW that the 240w PSU in the optiplex isn't actually pulling 240, and realistically likely not much more than the HP, but ~who cares~ the new HP pfsense is shweet. 
 
 Here's the old one and the new one! The difference in size is pretty clear. 
 

@@ -2,13 +2,14 @@
 title: "Catpi"
 date: 2020-04-20T17:23:59Z
 draft: true
+tags: ["raspberrypi", "tensorflow"]
 ---
 
-{{< video src="catpivideo" >}}
+{{< video src="catpivideo" height="200" >}}
 
-Alright, so I've had an RPi for a while, and it's had various... uses. One time I thought it might be fun to set up a streaming box, so I did that for a bit, but then some dependency issues came up with netflix and widevine and, well, it became easier to just buy a Google Home. So, next it lived a short life as a paperweight and didn't get any attention until the day we got an automated cat feeder to help alleviate waking up in the morning to loud cat-wall-scratchies. 
+Alright, so I've had an RPi for a while, and it's had various... uses. One time I thought it might be fun to set up a streaming box, so I did that for a bit, but then some dependency issues came up with netflix and widevine and, well, it became easier to just buy a Google Home. So, next it lived a short life as a paperweight and didn't get any attention until the day we got an automated cat feeder to help alleviate waking up in the morning to loud cat-wall-scratchies.
 
-Well, we soon discovered that merely buying the auto feeder didn't fix the problem. Sure, the feeder goes off, and A cat gets fed. But, one is on a slightly more extreme diet than the other... Depending on who gets the robo-kibbles we still have a cat scratching the wall in the morning. Additionally, in order to not overfeed, we need to feed the one that didn't get robo-breakfast their normal portion. Which begs the all too common question (right?): Who got robo-breakfast?
+Well, we soon discovered that merely buying the auto feeder didn't fix the problem. Sure, the feeder goes off, and *A* cat gets fed. But, one is on a slightly more extreme diet than the other... Depending on who gets the robo-kibbles we still have a cat scratching the wall in the morning. Additionally, in order to not overfeed, we need to feed the one that didn't get robo-breakfast their normal portion. Which begs the all too common question (right?): Who got robo-breakfast?
 
 ## The goal
 
