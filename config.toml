@@ -1,4 +1,3 @@
-baseURL = 'https://localh0st.run'
 languageCode = 'en-us'
 title = 'localh0st.run'
 #theme = ['hugo-video','classless-blog'] 
@@ -31,9 +30,6 @@ unsafe = true # Enable user to embed HTML snippets in Markdown content
 codeFences = true # Disable Hugo's code highlighter
 
 sourceURL = "https://localh0st.run"
-
-[params]
-author = "howard"
 
 baseURL = 'https://localh0st.run'
 baseurl = "https://localh0st.run"
