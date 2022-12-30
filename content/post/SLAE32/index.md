@@ -18,10 +18,6 @@ Requirements:
 
 I wrote a C bind shell based off of other posts in order to better understand the requirements. In actuality, I wrote multiple as I found better ways of writing the same code, as one does. My final C file is below:
 ```C
-// Shell_bind_tcp
-// For SLAE32
-// Howard McGreehan
-
 #include <sys/socket.h>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -661,8 +657,6 @@ Here's the python script I came up with:
 import sys
 
 # ROT X + NOT encoder / decoder
-# For SLAE32
-# Howard McGreehan
 
 if len(sys.argv) < 2:
     print("[!] Provide a shift")
@@ -1359,8 +1353,6 @@ The below is written in python3 and does a lot of stuff that's just not really n
 #!/usr/bin/env python
 
 # AES Shellcode Encrypter / Decrypter
-# For SLAE32
-# Howard McGreehan
 
 # PyCrypto
 from Crypto.Cipher import AES
