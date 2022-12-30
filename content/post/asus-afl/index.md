@@ -2,7 +2,7 @@
 title: "Asus, Qemu, AFL++ Notes"
 date: 2022-12-29T01:00:00Z
 draft: true
-tags: ["AFL", "Asus", "qemu", "emulation"]
+tags: ["afl", "asus", "qemu", "notes"]
 ---
 
 This post is just a collection of my notes and experiences reversing, compiling and emulating Asus proprietary and Asuswrt-Merlin software, on an Ubuntu 20.04 box. It's a bit of a pain really, I thought it would be pretty easy but everything's been an issue, which is also what makes it sorta fun.
@@ -81,6 +81,10 @@ touch etc/cfg_mount/key.pem
 touch etc/cfg_mount/pubkey.pem
 ```
 
+`nvram set cfg_syslog=1` creates some debug files in `/tmp/asusdebuglog/`
+
+![nvram-1](images/cfg_syslog_nvramset.PNG)
+
 Fought a bit more with nvram, created "debug_cprintf_file" key in libnvram.override/
 
 Saw that the cprintf file now existed in tmp, full of entries like
@@ -120,25 +124,21 @@ pcVar2 = "[%s(%d)]:auth check failed, exit\n";
 goto LAB_00014464;
 }
 }
-else {
-pcVar2 = (char *)func_nvram_Check-2("cfg_dbg");
-iVar4 = strcmp(pcVar2,"1");
-if (iVar4 == 0) {
-cprintf("[%s(%d)]:auth check success\n",&DAT_000800e1,0x2864);
-}
-pcVar2 = (char *)func_nvram_Check-2("cfg_syslog");
-iVar4 = strcmp(pcVar2,"1");
-if (iVar4 == 0) {
-asusdebuglog(6,"cfg_mnt.log",0,1,0,"[%s(%d)]:auth check success\n",&DAT_000800e1,0x2864);
-}
-memset(cm_ctrlBlock,0,0x8c);
-kill_pidfile_s("/var/run/cfg_server.pid",0xf);
-sleep(1);
-_Var5 = fork();
+else { 
+...
 ```
 
 FUN_0001e608 == auth_check()
-Line 31: checks auth_check return val, patched this to flip it by patching in ghidra, then exporting the program as an elf and writing it back to the file system annnnd:
+
+These debug logs made renaming functions in ghidra a breeze
+
+![rename](images/renaming_func.PNG)
+
+Line 31: checks auth_check return val, patched this to flip it by patching via ghidra
+
+![patch-1](images/cfg_server_patch_1.PNG)
+
+then exporting the program as an elf, writing it back to the file system *annnnd*:
 
 ```
 [main(10340)]:auth check success
@@ -220,7 +220,7 @@ Read data files from: /usr/bin/../share/nmap
 Nmap done: 1 IP address (1 host up) scanned in 0.90 seconds
 ```
 
-Looking at the cprintf file, now seeing more stuff, and some stuff about received packets:
+Looking at the cprintf log file, now seeing more stuff, and some stuff about received packets:
 ```
 ----asusdebuglog no unlock ------------
 [cm_rcvUdpHandler(196)]:own addr 192.168.1.180
@@ -255,6 +255,8 @@ Looking at the cprintf file, now seeing more stuff, and some stuff about receive
 ----asusdebuglog no unlock ------------
 [cm_processConnDiagPkt(300)]:fail to process corresponding packet
 ```
+
+![running-keyFail](images/cprintf_log_packetrecv.PNG)
 
 First calls `cm_rcvUdpHandler()`, believe this is triggered by the router at 192.168.1.2, it's preiodically broadcasting a message on UDP/7788 so this makes sense
 
@@ -299,7 +301,7 @@ Need a seed, previously captured some 7788/udp traffic
 
 ## httpd... crash?
 
-The httpd crash is from sending a digit as the first character of the payload body happens in httpd.c, around line 1605 in handler->output(file, conn_fp);
+The httpd crash is from sending a digit as the first character of the payload body happens in httpd.c, around line 1605 in `handler->output(file, conn_fp);`
 ```C
 }
 if (strcasecmp(method, "head") != 0 && handler->output) {
