@@ -13,9 +13,19 @@ Worked primarily with https://github.com/RMerl/asuswrt-merlin.ng for the RT-AX88
 
 Various, helpful and unhelpful links:
 
+qemu / Reversing:
 - https://resources.infosecinstitute.com/topic/fundamentals-of-iot-firmware-reverse-engineering/
 - https://gitbook.seguranca-informatica.pt/arm/reverse-iot-devices/reverse-asus-rt-ac5300#emulation-nvram
 - https://www.zerodayinitiative.com/blog/2020/5/27/mindshare-how-to-just-emulate-it-with-qemu
+
+AFL Examples:
+- https://animal0day.blogspot.com/2017/05/fuzzing-apache-httpd-server-with.html
+- https://mmmds.pl/cherokee-revisited-with-AFL/
+- https://securitylab.github.com/research/fuzzing-apache-1/
+
+AFL Mutators
+- https://aflplus.plus/docs/custom_mutators/
+- https://github.com/AFLplusplus/Grammar-Mutator
 
 #### Source, toolchain, compiling
 First off, setup the system and build the toolchains as the directions show in merlin.ng: https://github.com/RMerl/asuswrt-merlin.ng/wiki/Compile-Firmware-from-source
@@ -332,6 +342,12 @@ Need a seed, previously captured some 7788/udp traffic
 
 ## httpd... crash?
 
+First for debugging-- 
+
+`touch /tmp/HTTPD_DEBUG`
+
+Enables debug mode, writing HTTPD_DEBUG info to /jffs/HTTPD_DEBUG
+
 The httpd crash is from sending a digit as the first character of the payload body happens in httpd.c, around line 1605 in `handler->output(file, conn_fp);`
 ```C
 }
@@ -400,7 +416,7 @@ OK, after more editing I realized it is very simple to get httpd accepting reque
 within `handle_request()`, near it's declaration you need to add:
 ```C
   /* Parse the first line of the request. */
-	conn_fp = fopen(inputFile, "rw+"); // <-- this
+	conn_fp = fopen(inputFile, "r+"); // <-- this
 ```
 
 and in main():
@@ -602,11 +618,11 @@ Content-Length: 4
 
 So, why did AFL save *so many* of these crashes? Most aren't unique from one another or at least I don't think they are, but the whole goal is to find a useable crash, so I began triaging to see if anything stuck out. 
 
-### Crash triaging
+### Crash troubleshooting 
 
-So, let's take a look at two of these crashes. They are generated from the following two HTTP requests:
+So, let's take a look at two of these crashes. They are generated from the following two HTTP requests-- the first one I found through various testing, the second was found by AFL, as planned.
 
-known_crash:
+`known_crash`:
 ```
 GET /Main_Login.asp HTTP/1.0
 Host: 192.168.1.180:80
@@ -615,7 +631,7 @@ Content-Length: 4
 0000
 ```
 
-http_request:
+`http_request`:
 ```
 GET /get_ig_config.cgi
 HostGET �upload_cert_key.�giGET
@@ -625,7 +641,7 @@ Content-Length:54
 GET /Main_Login.aspAdvance
 ```
 
-Running gdb-multiarch with the binary and associated coredumps we can see some good info:
+Running gdb-multiarch with the binary and associated coredumps:
 
 `http_request` crash:
 ```
@@ -691,7 +707,7 @@ httpd: $(OBJS)
 ```
 Annnddd.. recompile
 
-Alright, so now the `known_crash-1` core dump looks like this:
+Alright, so now the `known_crash-1` file's core dump (with `-g`) looks like this:
 
 ```
 # gdb-multiarch -q usr/sbin/httpd qemu_httpd_20230101-143447_1811053.core
@@ -731,7 +747,7 @@ No symbol table info available.
 No symbol table info available.
 ```
 
-Sadly no additional info comes from the other crash after enabling debug symbols.
+Sadly no additional info comes from the other crash after enabling debug symbols. Looking at where the decode call comes from, ej.c:309
 
 ej.c:298
 ```C
@@ -761,8 +777,281 @@ ej.c:298
 #endif  //defined TRANSLATE_ON_FLY
 ```
 
-Cool! So the crash occurs from `do_json_decode(root);`-- not sure exactly WHY yet but that's good. I assume this funciton isn't expecting a numeric value as `root`.
+Cool! So the crash occurs from `do_json_decode(root);` not sure exactly WHY yet but that's OK, can figure that out. I assume this function isn't expecting a numeric value as `root`.
+
+So, what's `do_json_decode()` do? Well, I only see it referenced in `ej.c`
+
+`45: extern int do_json_decode(struct json_object *root);`
+
+`*root` is defined as: `struct json_object *root = json_object_new_object();`
+```
+# grep -R "json_object_new_object" ../* 2<&-
+../src/router/arm-glibc/stage/usr/include/json-c/json_object.h:extern struct json_object* json_object_new_object(void);
+[...]
+```
+
+what is it?
+
+`json_object_new_object: /release/src-rt-5.02L.07p2axhnd/bcmdrivers/broadcom/net/wl/impl69/main/components/opensource/jsonc/json_object.h`
+```C
+/* object type methods */
+
+/** Create a new empty object with a reference count of 1.  The caller of
+ * this object initially has sole ownership.  Remember, when using
+ * json_object_object_add or json_object_array_put_idx, ownership will
+ * transfer to the object/array.  Call json_object_get if you want to maintain
+ * shared ownership or also add this object as a child of multiple objects or
+ * arrays.  Any ownerships you acquired but did not transfer must be released
+ * through json_object_put.
+ *
+ * @returns a json_object of type json_type_object
+ */
+extern struct json_object* json_object_new_object(void);
+```
+exists in the source:
+
+```bash
+$ find ../ -name json_object.c
+../src-rt-5.02axhnd/bcmdrivers/broadcom/net/wl/impl51/main/components/opensource/jsonc/json_object.c
+../src/router/libfastjson/json_object.c
+../src/router/json-c/json_object.c
+../src-rt-5.04axhnd.675x/bcmdrivers/broadcom/net/wl/impl87/main/components/opensource/jsonc/json_object.c
+../src-rt-5.02L.07p2axhnd/bcmdrivers/broadcom/net/wl/impl69/main/components/opensource/jsonc/json_object.c
+```
+
+json_object.c
+```C
+[...]
+struct json_object* json_object_new_object(void)
+{
+  struct json_object *jso = json_object_new(json_type_object);
+  if(!jso) return NULL;
+  jso->_delete = &json_object_object_delete;
+  jso->_to_json_string = &json_object_object_to_json_string;
+  jso->o.c_object = lh_kchar_table_new(JSON_OBJECT_DEF_HASH_ENTRIES,
+					NULL, &json_object_lh_entry_free);
+  return jso;
+}
+```
+
+can at least begin troubleshooting with trust `printf`s
+```C struct json_object* json_object_new_object(void)
+{
+  printf("Enter\r\n", 9);
+  struct json_object *jso = json_object_new(json_type_object);
+  printf("After struct\r\n", 16);
+  if(!jso) return NULL;
+  printf("Past if\r\n", 11);
+  jso->_delete = &json_object_object_delete;
+  printf("delete\r\n", 11);
+  jso->_to_json_string = &json_object_object_to_json_string;
+  printf("_to_json_string\r\n", 19);
+  jso->o.c_object = lh_kchar_table_new(JSON_OBJECT_DEF_HASH_ENTRIES,
+					NULL, &json_object_lh_entry_free);
+  printf("o.c_object\r\n", 14);
+  return jso;
+}
+```
+
+TODO: COME BACK TO THIS
+
+### "known_crash" analysis
+
+So while looking at my known and "new" (AFL generated) crashes I was doing the above triage and ended up in the bcmdrivers to chase down the behavior. 
+
+I wanted to continue chasing down the root cause of the OG crash I had, so I recompiled with `CFLAGS += -g`, which seemed to get the debug symbols created. For some reason just adding -g to the gcc command wasn't sufficient.
+
+The `known_crash` crash looks like this now:
+
+```
+# gdb-multiarch -q usr/sbin/httpd qemu_httpd_20230104-203755_3086479.core
+Reading symbols from usr/sbin/httpd...
+[New LWP 3086479]
+
+warning: Unable to find libthread_db matching inferior's thread library, thread debugging will not be available.
+
+warning: Unable to find libthread_db matching inferior's thread library, thread debugging will not be available.
+Core was generated by `
+'.
+Program terminated with signal SIGSEGV, Segmentation fault.
+#0  0x00043fa4 in do_json_decode (root=0x1049d8) at web.c:11576
+11576                   json_object_object_foreach(tmp_obj, key, val){
+(gdb) bt full
+#0  0x00043fa4 in do_json_decode (root=0x1049d8) at web.c:11576
+        entrykey = <optimized out>
+        entry_nextkey = <optimized out>
+        key = 0x0
+        val = 0x0
+        name_tmp = '\000' <repeats 49 times>
+        tmp_obj = 0x104e58
+        copy_json = 0x0
+#1  0x0001af94 in do_ej ()
+No symbol table info available.
+#2  0x000199f8 in handle_request ()
+No symbol table info available.
+#3  0x00016c84 in main ()
+No symbol table info available.
+```
+ 
+install pwndbg, lol
+```
+git clone https://github.com/pwndbg/pwndbg
+cd pwndbg
+./setup.sh
+```
+
+### Router app
+
+Having a hard time proxying traffic from the app, packet captured on the pfsense from my phone, gave me a bit of info
+
+Noted this user agent `User-Agent: asusrouter-Windows-DUTUtil-1.0.1.278`
+
+```
+➜  /tmp tcpdump -r pcap.pcap -X port 80
+[...]
+15:41:53.287671 IP 192.168.1.14.52456 > pfSense.home.local.http: Flags [P.], seq 1:122, ack 1, win 2058, options [nop,nop,TS val 1340893486 ecr 1213537481], length 121: HTTP: GET /appGet_image_path.cgi HTTP/1.1
+        0x0000:  4500 00ad 0000 4000 4006 b6eb c0a8 010e  E.....@.@.......
+        0x0010:  c0a8 0101 cce8 0050 678d a3b1 80f6 d177  .......Pg......w
+        0x0020:  8018 080a 8523 0000 0101 080a 4fec 692e  .....#......O.i.
+        0x0030:  4855 1cc9 4745 5420 2f61 7070 4765 745f  HU..GET./appGet_
+        0x0040:  696d 6167 655f 7061 7468 2e63 6769 2048  image_path.cgi.H
+        0x0050:  5454 502f 312e 310d 0a48 6f73 743a 2031  TTP/1.1..Host:.1
+        0x0060:  3932 2e31 3638 2e31 2e31 0d0a 4163 6365  92.168.1.1..Acce
+        0x0070:  7074 3a20 2a2f 2a0d 0a75 7365 722d 4167  pt:.*/*..user-Ag
+        0x0080:  656e 743a 2061 7375 7372 6f75 7465 722d  ent:.asusrouter-
+        0x0090:  5769 6e64 6f77 732d 4455 5455 7469 6c2d  Windows-DUTUtil-
+        0x00a0:  312e 302e 312e 3237 380d 0a0d 0a         1.0.1.278....
+15:41:53.287685 IP pfSense.home.local.http > 192.168.1.14.52456: Flags [.], ack 122, win 513, options [nop,nop,TS val 1213537484 ecr 1340893486], length 0
+        0x0000:  4500 0034 0000 4000 4006 b764 c0a8 0101  E..4..@.@..d....
+        0x0010:  c0a8 010e 0050 cce8 80f6 d177 678d a42a  .....P.....wg..*
+        0x0020:  8010 0201 8386 0000 0101 080a 4855 1ccc  ............HU..
+        0x0030:  4fec 692e                                O.i.
+15:41:53.287735 IP pfSense.home.local.http > 192.168.1.14.52456: Flags [P.], seq 1:401, ack 122, win 514, options [nop,nop,TS val 1213537484 ecr 1340893486], length 400: HTTP: HTTP/1.1 301 Moved Permanently
+        0x0000:  4500 01c4 0000 4000 4006 b5d4 c0a8 0101  E.....@.@.......
+        0x0010:  c0a8 010e 0050 cce8 80f6 d177 678d a42a  .....P.....wg..*
+        0x0020:  8018 0202 8516 0000 0101 080a 4855 1ccc  ............HU..
+        0x0030:  4fec 692e 4854 5450 2f31 2e31 2033 3031  O.i.HTTP/1.1.301
+        0x0040:  204d 6f76 6564 2050 6572 6d61 6e65 6e74  .Moved.Permanent
+        0x0050:  6c79 0d0a 5365 7276 6572 3a20 6e67 696e  ly..Server:.ngin
+        0x0060:  780d 0a44 6174 653a 2054 6875 2c20 3035  x..Date:.Thu,.05
+        0x0070:  204a 616e 2032 3032 3320 3230 3a34 313a  .Jan.2023.20:41:
+        0x0080:  3533 2047 4d54 0d0a 436f 6e74 656e 742d  53.GMT..Content-
+        0x0090:  5479 7065 3a20 7465 7874 2f68 746d 6c0d  Type:.text/html.
+        0x00a0:  0a43 6f6e 7465 6e74 2d4c 656e 6774 683a  .Content-Length:
+        0x00b0:  2031 3632 0d0a 436f 6e6e 6563 7469 6f6e  .162..Connection
+        0x00c0:  3a20 6b65 6570 2d61 6c69 7665 0d0a 4c6f  :.keep-alive..Lo
+        0x00d0:  6361 7469 6f6e 3a20 6874 7470 733a 2f2f  cation:.https://
+        0x00e0:  3139 322e 3136 382e 312e 312f 6170 7047  192.168.1.1/appG
+        0x00f0:  6574 5f69 6d61 6765 5f70 6174 682e 6367  et_image_path.cg
+        0x0100:  690d 0a58 2d46 7261 6d65 2d4f 7074 696f  i..X-Frame-Optio
+        0x0110:  6e73 3a20 5341 4d45 4f52 4947 494e 0d0a  ns:.SAMEORIGIN..
+        0x0120:  0d0a 3c68 746d 6c3e 0d0a 3c68 6561 643e  ..<html>..<head>
+        0x0130:  3c74 6974 6c65 3e33 3031 204d 6f76 6564  <title>301.Moved
+        0x0140:  2050 6572 6d61 6e65 6e74 6c79 3c2f 7469  .Permanently</ti
+        0x0150:  746c 653e 3c2f 6865 6164 3e0d 0a3c 626f  tle></head>..<bo
+        0x0160:  6479 3e0d 0a3c 6365 6e74 6572 3e3c 6831  dy>..<center><h1
+        0x0170:  3e33 3031 204d 6f76 6564 2050 6572 6d61  >301.Moved.Perma
+        0x0180:  6e65 6e74 6c79 3c2f 6831 3e3c 2f63 656e  nently</h1></cen
+        0x0190:  7465 723e 0d0a 3c68 723e 3c63 656e 7465  ter>..<hr><cente
+        0x01a0:  723e 6e67 696e 783c 2f63 656e 7465 723e  r>nginx</center>
+        0x01b0:  0d0a 3c2f 626f 6479 3e0d 0a3c 2f68 746d  ..</body>..</htm
+        0x01c0:  6c3e 0d0a
+```
 
 
-### Instrumenting?
+
+#### api.asp?
+
+
+#### login.cgi
+
+Found a new crash
+
+```http
+GET /login.cgi HTTP/1.1
+Host: 192.168.1.2
+User-Agent: asusrouter-Windows-DUTUtil-1.0.1.278
+```
+
+Triage:
+
+```bash
+$ ulimit -c unlimited
+$ chroot . ./qemu-arm-static -E LD_PRELOAD=/firmadyne/libnvram.so /usr/sbin/httpd crash3
+[...]
+nvram_get_buf: = "admin"
+nvram_get_int: p_Setting
+sem_get: Key: 414b0002
+sem_get: Key: 414b0002
+nvram_get_int: Unable to read key: /firmadyne/libnvram/p_Setting!
+Segmentation fault (core dumped)
+$ gdb-multiarch usr/sbin/httpd qemu_httpd_20230105-215542_3503814.core
+[...]
+pwndbg> bt full
+#0  0xfef6d6a4 in strlen () from /home/tester/amng-build/release/src-rt-5.02axhnd/targets/94908HND/fs/lib/libc.so.6
+No symbol table info available.
+#1  0x00034c40 in login_cgi (wp=0x103150, query=<optimized out>, path=<optimized out>, url=<optimized out>, arg=<optimized out>, webDir=<optimized out>, urlPrefix=<optimized out>) at web.c:19175
+        authorization_t = <optimized out>
+        authinfo = '\000' <repeats 499 times>
+[...]
+```
+
+And, from source:
+
+web.c:19169
+```c
+/* Is this the right user and password? */
+if(nvram_match("http_username", authinfo) && compare_passwd_in_shadow(authinfo, authpass))
+        auth_pass = 1;
+if(!nvram_get_int("p_Setting")){
+        if(strlen(authinfo) > 20)
+                authinfo[20] = '\0';
+        if(strlen(authpass) > 16)
+                *(authpass+16) ='\0';
+        if(nvram_match("http_username", authinfo) && compare_passwd_in_shadow(authinfo, authpass))
+                auth_pass = 1;
+}
+```
+
+seems boring, next
+
+
+#### apply.cgi
+
+found another crash in apply.cgi, but it's another boring one, a null pointer exception due to not including the `current_page` POST param vvvv
+
+request:
+```
+POST /apply.cgi HTTP/1.1
+Host: 192.168.1.180
+Content-Length: 36
+Content-Type: application/x-www-form-urlencoded
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36
+Cookie: hwaddr=3C:7C:3F:53:C1:00; apps_last=; asus_token=GTySYitXojpulvj1oVADaysOOsFw6Ga; clickedItem_tab=0
+
+action_mode=+Refresh+&SystemCmd=test
+```
+
+gdb:
+```
+#0  0xfef6cbf0 in strcmp () from /home/tester/amng-build/release/src-rt-5.02axhnd/targets/94908HND/fs/lib/libc.so.6
+No symbol table info available.
+#1  0x00057e8c in apply_cgi (wp=0x103150, query=<optimized out>, path=<optimized out>, url=<optimized out>, arg=<optimized out>, webDir=<optimized out>, urlPrefix=<optimized out>) at web.c:11988
+        system_cmd = 0xb13a8 <post_buf+32> "test"
+        action_mode = <optimized out>
+        action_para = <optimized out>
+        current_url = 0x0
+        config_name = <optimized out>
+#2 ...
+```
+
+source:
+web.c:11988
+```c
+if(!strcmp(current_url, "Main_Netstat_Content.asp") && (
+        strncasecmp(system_cmd, "netstat", 7) == 0
+```
+
+BORING, NEXT
+
 
