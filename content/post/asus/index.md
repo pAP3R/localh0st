@@ -343,7 +343,7 @@ admin@RP-AC1900-4828:/tmp/home/root#
 
 That means that while not everything will be randomized / rebased, mostly all the good stuff is.  The way to currently prove there's an arbitrary write is by manually calculating the target address via gdb or memory maps-- things you likely won't have access to if you're trying to, you know, get a shell or something. While this is good enough for a proof of concept, it's so, so unlikely for it to be portable from device to device.
 
-##PoC Write to Portable Exploit?
+## PoC Write to Portable Exploit?
 I spent a while considering how to circumvent these requirements, but without a stack overflow, or something else I could leverage I couldn't see a way to reliably obtain control of the flow of execution. Then, after sent a whole bunch of %25p's and took a close look at the syslog:
 ```
 Mar  9 12:37:18 rc_service: httpd 10377:notify_rc start_apps_install AAAA(nil)(nil)(nil)0x707474680x303120640x3a3737330x69746f6e0x725f79660x747320630x5f7472610x737070610x736e695f0x6c6c61740x414141200x257025410x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x257025700x700x80x80x80x80x80x80xbe873c180xbe873c6c(nil)(ni
@@ -407,7 +407,7 @@ So, getting $rip:
 ![rip2](/post/asus/images/rip-2.PNG)
 Setting a breakpoint directly after the call to syslog:
 
-![rip1](/post/asus/images/rip-1.PNG)
+![rip1](/post/asus/images/rip-1.png)
 
 So, now I'm king of the castle. 
 

@@ -22,6 +22,8 @@ AFL Examples:
 - https://animal0day.blogspot.com/2017/05/fuzzing-apache-httpd-server-with.html
 - https://mmmds.pl/cherokee-revisited-with-AFL/
 - https://securitylab.github.com/research/fuzzing-apache-1/
+- https://securitylab.github.com/research/fuzzing-sockets-FreeRDP/
+- https://foxglovesecurity.com/2016/03/15/fuzzing-workflows-a-fuzz-job-from-start-to-finish/
 
 AFL Mutators
 - https://aflplus.plus/docs/custom_mutators/
@@ -338,6 +340,82 @@ Need to get this accepting from stdin
 Need a seed, previously captured some 7788/udp traffic
 
 [...]
+
+returning to this...
+
+So deforking with preeny works well, but desock'ing does not. Gonna try libdesock.so from https://github.com/fkie-cad/libdesock
+
+Will have to fight for cross compiling this I guess, ugh
+
+Anyway, I'm able to run it and send data like so:
+
+`chroot . ./qemu-arm-static -E LD_PRELOAD=/firmadyne/libnvram.so:/defork.so /usr/sbin/cfg_server`
+
+and it hangs out running, so I can send via nc
+
+`nc 127.0.0.1 7788 < 1`
+
+which yields 
+
+```
+[cm_rcvUdpHandler(202)]:got packet from 192.168.1.2
+[cm_processConnDiagPkt(298)]:process packet (5)
+[cm_selectGroupKey(3980)]:gKeyTime(90), gKey1Time(1673116928), groupKeyExpireTime(3600), rekeyTime(3150) ,[cm_selectGroupKey(3988)]:gKey1Time > groupKeyExpireTime, select key
+[cm_selectGroupKey(3980)]:gKeyTime(90), gKey1Time(1673116928), groupKeyExpireTime(3600), rekeyTime(3150)
+[cm_selectGroupKey(3988)]:gKey1Time > groupKeyExpireTime, select key1
+[cm_aesDecryptMsg(82)]:Failed to aes_decrypt() by key!!!
+[cm_aesDecryptMsg(85)]:key1 is NULL !!!
+[cm_processREQ_CHKSTA(202)]:Failed to aes_decrypt() !!!
+[cm_processConnDiagPkt(300)]:fail to process corresponding packet
+[cm_rcvTcpHandler(9261)]:enter
+[cm_rcvTcpHandler(9290)]:leave
+ ```
+
+where `xxd 1`
+
+```
+00000000: 4500 021c 94db 4000 4011 e199 c0a8 01b4  E.....@.@.......
+00000010: ffff ffff 270f 270f 0208 d8ab 0c16 1f00  ....'.'.........
+00000020: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000030: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000040: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000050: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000060: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000070: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000080: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000090: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+000000a0: 0000 0000 4361 7420 456d 7069 7265 0000  ....Cat Empire..
+000000b0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+000000c0: 0000 0000 3235 352e 3235 352e 3235 352e  ....255.255.255.
+000000d0: 3000 0000 0000 0000 0000 0000 0000 0000  0...............
+000000e0: 0000 0000 5254 2d41 5838 3855 0000 0000  ....RT-AX88U....
+000000f0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000100: 0000 0000 332e 302e 302e 342e 3338 3600  ....3.0.0.4.386.
+00000110: 0000 0000 003c 7c3f 53c1 0000 0000 0000  .....<|?S.......
+00000120: 0000 0000 0000 0000 0000 0000 8280 5900  ..............Y.
+00000130: 0000 3038 0000 0000 0000 0000 0000 0000  ..08............
+00000140: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000150: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000160: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000170: 0000 0000 00b4 01a8 c000 0000 0000 0000  ................
+00000180: 0000 0000 0000 0000 0000 0000 0000 1500  ................
+00000190: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+000001a0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+000001b0: 0000 0100 3366 6665 3531 3037 3833 6133  ....3ffe510783a3
+000001c0: 6638 6531 3263 3665 3062 6466 3737 6339  f8e12c6e0bdf77c9
+000001d0: 3136 3846 0a00 0000 0000 0000 0000 0000  168F............
+000001e0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+000001f0: 0000 0000 3c7c 3f53 c100 0000 0000 0000  ....<|?S........
+00000200: 0000 0000 0000 0000 0000 0000 0000 0000  ................
+00000210: 0000 0000 0000 0000 0000 0000            ............
+```
+
+so it's clearly working, but how do I desock it or fuzz it like this?
+
+Giving aflnet a shot, just wanna get something working, https://github.com/aflnet/aflnet 
+
+SImilar setup as normal AFL, pull down, `make clean all`, then `cd qemu_mode && ./build_qemu_support.sh`
+
 
 
 ## httpd... crash?
@@ -1016,7 +1094,7 @@ if(!nvram_get_int("p_Setting")){
 seems boring, next
 
 
-#### apply.cgi
+### apply.cgi
 
 found another crash in apply.cgi, but it's another boring one, a null pointer exception due to not including the `current_page` POST param vvvv
 
@@ -1054,4 +1132,116 @@ if(!strcmp(current_url, "Main_Netstat_Content.asp") && (
 
 BORING, NEXT
 
+
+## smbd
+
+Asus (maybe wrt as well?) uses samba 3.0.37, after pluggin in a USB drive and enabling the samba stuff I attempted to list a share and folder with a long filename:
+
+```bash
+➜  asus smbclient \\\\192.168.1.2\\testfolderaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Password for [WORKGROUP\kali]:
+tree connect failed: NT_STATUS_IO_TIMEOUT
+
+^C
+```
+
+In the router's syslog I saw:
+
+```
+Jan  7 08:47:51 Samba Server: smb daemon is stoped
+Jan  7 08:47:51 Samba Server: daemon is started
+Jan  7 08:57:50 smbd[3138]: [2023/01/07 08:57:50.787570,  0] lib/util_str.c:532(safe_strcpy_fn)
+Jan  7 08:57:50 smbd[3138]:   ERROR: string overflow by 1 (256 - 255) in safe_strcpy [testfolderaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa]
+```
+
+Seems interesting, maybe I'll return to this
+
+
+## infosvr
+
+Another binary that had piqued my interest early on was named `infosvr`, and it listened on 9999/UDP. This bin is open sourced, and in my earlier poking around I had noticed traffic on 9999 was identical to many packets being sent and received by `cfg_server`
+
+This bin seems *fairly* simple, or at least it seemed simple enough to get a packet passed to its `processPacket()` function. Running the emulated binary produces the following output periodically, some indication that my *actual* router and the emulated device are communicating:
+
+```bash
+$ chroot . ./qemu-arm-static -E LD_PRELOAD=/firmadyne/libnvram.so /usr/sbin/infosvr br0
+...
+nvram_get_int: Unable to read key: /firmadyne/libnvram/aae_enable!
+AAE EnableAAE =0 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+nvram_get_buf: aae_deviceid
+sem_get: Key: 419c0002
+sem_get: Key: 419c0002
+nvram_get_buf: = "3ffe510783a3f8e12c6e0bdf77c9168e"
+AAE DeviceID =3ffe510783a3f8e12c6e0bdf77c9168e <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+```
+
+I spent a bit of time editing the source and making a little py script to send some data to the emulated binary, this way I could get some easier to digest feedback and start understanding what's happening when it calls `recv` or similar.
+
+infosvr.c
+```c
+int processReq(int sockfd)
+{
+...
+        //Receive the complete PDU
+        iRcv = RECV(sockfd , pdubuf , INFO_PDU_LENGTH , (struct sockaddr *)&from_addr , &fromlen  , 1);
+        printf("Bytes: %d\r\n", iRcv);
+        printf("pdubuf %s\r\n", pdubuf);
+
+        if (iRcv != INFO_PDU_LENGTH) // INFO_PDU_LENGTH = 512
+        {
+        closesocket(sockfd);
+        return (-1);
+        }
+
+        hdr = pdubuf;
+        cli_port = ntohs(from_addr.sin_port);
+        //_dprintf("[InfoSvr] Client Port: %d\n", cli_port);
+        printf("%s\n", hdr);
+        printf("%p\n", hdr);
+        printf("processPacket enter\r\n");
+        processPacket(sockfd, hdr, cli_port);
+...
+```
+
+which produces the following output:
+```
+AAE DeviceID =3ffe510783a3f8e12c6e0bdf77c9168e <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+Bytes: 512
+pdubuf
+
+
+
+0xfffef2c4
+processPacket enter
+Bytes: 512
+pdubuf
+...
+```
+
+Definitely very cool. `processPacket` lives in `common.c` and accepts the socket fd, packet contents as `hdr` and the port. I left tcpdump running for a while to catch anything interesting on 9999/udp. Can strip the UDP headers out and just snag the data using wireshark, or `tcpdump -r file.pcap -x port 9999` etc and just manually copy the data.
+
+### AFL
+
+Converting the app to stdin took a couple changes, had a couple crashes after making changes, `processPacket` returns into some functions that call `sendTo`, so those need to be commented out
+
+infosvr.c:120
+```C
+// Get file from stdin instead
+
+const char *finput = NULL;
+FILE *fp;
+finput = argc[argv - 1];
+char		*hdr;
+char		pdubuf[INFO_PDU_LENGTH]; //512
+
+memset(pdubuf,0,sizeof(pdubuf));
+fp = fopen(finput, "r");	
+
+/* copy the file into the buffer */
+fread( pdubuf , 512, 1 , fp); // Copy FP (*file) contents buf into char[]
+processPacket(fp, pdubuf, 9999);
+
+printf("done processPacket\r\n", 23);
+exit(1);
+```
 
