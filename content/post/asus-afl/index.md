@@ -56,7 +56,7 @@ Copy nvram values out, regex to fix for fimadyne's config.h format-- careful wit
 
 Compile libnvram to ARM, copy into path
 
-`arm-linux-gcc-5.5.0 -shared -nostdlib nvram.c -o libnvram.so -ldl && chmod 777 libnvram.so && ~/amng-build/release/src-rt-5.02axhnd/targets/94908HND/fs && cp ~/libnvram/libnvram.so firmadyne/`
+`arm-linux-gcc-5.5.0 -shared -nostdlib nvram.c -o libnvram.so -ldl && chmod 777 libnvram.so && cd ~/amng-build/release/src-rt-5.02axhnd/targets/94908HND/fs && cp ~/libnvram/libnvram.so firmadyne/`
 
 Brutal regex thing for creating nvram files
 
@@ -375,7 +375,7 @@ where `xxd 1`
 
 ```
 00000000: 4500 021c 94db 4000 4011 e199 c0a8 01b4  E.....@.@.......
-00000010: ffff ffff 270f 270f 0208 d8ab 0c16 1f00  ....'.'.........
+00000010: ffff ffff 270f 270f 0208 d8ab 0c16 1f00  ....'.'......... // Packet data starts @ 0C 16
 00000020: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 00000030: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 00000040: 0000 0000 0000 0000 0000 0000 0000 0000  ................
@@ -416,9 +416,51 @@ Giving aflnet a shot, just wanna get something working, https://github.com/aflne
 
 SImilar setup as normal AFL, pull down, `make clean all`, then `cd qemu_mode && ./build_qemu_support.sh`
 
+### ldpreloadhook
+
+desock won't work because of `ioctl` calls to get interface info, can trace the errors to it in ghidra
+
+```
+[cm_getIfInfo(9784)]:get own address of br0 failed!
+[cm_task(10273)]:get interface information failed
+```
+
+trying `ldpreloadhook` to hook the calls and see what's happening
+
+can probably preload ioctl with the calls, similar to desock, etc
+
+`$ arm-linux-gcc-5.5.0 -shared -nostdlib -o hook.o hook.c -ldl && chmod +x hook.o && sudo cp hook.o ../amng-build/release/src-rt-5.02axhnd/targets/94908HND/fs/`
+
+qemu with defork:
+`$ sudo chroot . ./qemu-arm-static -E LD_PRELOAD=/firmadyne/libnvram.so:/desock.so:/defork.so:/hook.o /usr/sbin/cfg_server` 
+
+qemu w/out defork:
+`sudo chroot . ./qemu-arm-static -E LD_PRELOAD=/firmadyne/libnvram.so:/desock.so:/hook.o /usr/sbin/cfg_server`
+
+hooks cool shit, easy way to see mallocs / frees, can see ioctl calls
+
+```
+nvram_get_buf: = "eth7"
+HOOK: malloc( size=5 )
+HOOK: strlen( "per_chan_info" ) returned 13
+HOOK: closed file descriptor (fd=4)
+HOOK: malloc( size=4 )
+HOOK: malloc( size=4 )
+HOOK: ioctl (fd=3, request=0x89f0, argp=0xfffec750 [00])
+Unsupported ioctl: cmd=0x89f0
+eth7: WLC_GET_VAR(per_chan_info): Function not implemented
+HOOK: closed file descriptor (fd=3)
+```
 
 
-## httpd... crash?
+fucking WOW forgot all about boofuzz
+
+### boofuzz
+
+
+
+
+## httpd
 
 First for debugging-- 
 
@@ -458,7 +500,7 @@ Segmentation fault (core dumped)
 /www #
 ```
 
-Set up host system to create core dumps with ulimit
+Set up host system to enable core dumps with `ulimit -c unlimited` and `echo core > ...` or whatever, as indicated by AFL
 
 can directly run httpd with qemu-user mode
 
@@ -1244,4 +1286,120 @@ processPacket(fp, pdubuf, 9999);
 printf("done processPacket\r\n", 23);
 exit(1);
 ```
+
+Packet structures / definitions are in:
+- router/shared/iboxcom.h
+
+```
+//Packet Type Section
+#define NET_SERVICE_ID_BASE	        (10)
+#define NET_SERVICE_ID_LPT_EMU	    (NET_SERVICE_ID_BASE + 1)
+#define NET_SERVICE_ID_IBOX_INFO	(NET_SERVICE_ID_BASE + 2)
+
+
+//Packet Type Section
+#define NET_PACKET_TYPE_BASE	    (20)
+#define NET_PACKET_TYPE_CMD	        (NET_PACKET_TYPE_BASE + 1)
+#define NET_PACKET_TYPE_RES	        (NET_PACKET_TYPE_BASE + 2)
+
+//Command ID Section
+//#define NET_CMD_ID_BASE		30
+//#define NET_CMD_ID_GETINFO	NET_CMD_ID_BASE + 1
+
+enum  NET_CMD_ID
+{                               // Decimal      Hexadecimal
+	NET_CMD_ID_BASE = 30,       //  30              0x1E
+	NET_CMD_ID_GETINFO,         //  31              0x1F
+	NET_CMD_ID_GETINFO_EX,      //  32              0x20
+	NET_CMD_ID_GETINFO_SITES,   //  33              0x21
+	NET_CMD_ID_SETINFO,         //  34              0x22
+	NET_CMD_ID_SETSYSTEM,       //  35              0x23
+	NET_CMD_ID_GETINFO_PROF,    //  36              0x24
+	NET_CMD_ID_SETINFO_PROF,    //  37              0x25
+    	NET_CMD_ID_CHECK_PASS,      //  38              0x26
+```
+
+Shortened the payload that's working, #2, to just 
+`0C 15 1F`
+
+Still triggers the correct path, added print statements to `processPacket` after each switch case:
+
+```C
+case NET_CMD_ID_GETINFO:
+        printf("\r\nNET_CMD_ID_GETINFO\r\n");
+        ...
+```
+
+Running it:
+(`| tee` supresses nvram output :thumbsup)
+```
+sudo chroot . ./qemu-arm-static -E LD_PRELOAD=/firmadyne/libnvram.so /usr/sbin/infosvr infosvr-input/2-modified | tee
+...
+nvram_get_buf: = "3ffe510783a3f8e12c6e0bdf77c9168e"
+
+NET_CMD_ID_GETINFO
+AAE EnableAAE =0 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+AAE DeviceID =3ffe510783a3f8e12c6e0bdf77c9168e <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+done processPacket
+```
+
+Making a dictionary of each "opcode" and other goodies from the `iboxcom.h` header file
+
+Packet Structure:
+
+`0C 15 1F`
+
+iboxcom.h
+```C
+//Use For Network Communication Protocol
+
+//Packet Type Section
+#define NET_SERVICE_ID_BASE	        (10)
+#define NET_SERVICE_ID_LPT_EMU	    (NET_SERVICE_ID_BASE + 1)
+#define NET_SERVICE_ID_IBOX_INFO	(NET_SERVICE_ID_BASE + 2)
+
+
+//Packet Type Section
+#define NET_PACKET_TYPE_BASE	    (20)
+#define NET_PACKET_TYPE_CMD	        (NET_PACKET_TYPE_BASE + 1)
+#define NET_PACKET_TYPE_RES	        (NET_PACKET_TYPE_BASE + 2)
+
+//Command ID Section
+//#define NET_CMD_ID_BASE		30
+//#define NET_CMD_ID_GETINFO	NET_CMD_ID_BASE + 1
+
+enum  NET_CMD_ID
+{                               // Decimal      Hexadecimal
+	NET_CMD_ID_BASE = 30,       //  30              0x1E
+	NET_CMD_ID_GETINFO,         //  31              0x1F
+	NET_CMD_ID_GETINFO_EX,      //  32              0x20
+	NET_CMD_ID_GETINFO_SITES,   //  33              0x21
+	NET_CMD_ID_SETINFO,         //  34              0x22
+	NET_CMD_ID_SETSYSTEM,       //  35              0x23
+	NET_CMD_ID_GETINFO_PROF,    //  36              0x24
+	NET_CMD_ID_SETINFO_PROF,    //  37              0x25
+    	NET_CMD_ID_CHECK_PASS,      //  38              0x26
+#ifdef BTN_SETUP
+	NET_CMD_ID_SETKEY_EX,	    //  39		0x27
+	NET_CMD_ID_QUICKGW_EX,	    //  40 		0x28
+	NET_CMD_ID_EZPROBE,	    //  41		0x29
+#endif
+	NET_CMD_ID_MANU_BASE=50,    //  50		0x32
+	NET_CMD_ID_MANU_CMD,	    //  51		0x33
+	NET_CMD_ID_GETINFO_MANU,    //  52              0x34
+	NET_CMD_ID_GETINFO_EX2,     //  53              0x35
+	NET_CMD_ID_FIND_CAP,     //  54              0x36
+	NET_CMD_ID_MAXIMUM
+};
+```
+
+So, with the above known we can figure this packet header pretty easily:
+`0C` == 12 == `NET_SERVICE_ID_IBOX_INFO`
+`15` == 21 == `NET_PACKET_TYPE_CMD`
+`1F` == 31 == `NET_CMD_ID_GETINFO`
+
+Next, created a directory of 512 byte hex files with different headers
+
+Sadly there's just not a lot of functionality in this binary :/
+
 
