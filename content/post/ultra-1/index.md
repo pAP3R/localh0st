@@ -5,7 +5,7 @@ draft: true
 tags: ["notes", "run"]
 ---
 
-## ARM, wait no, an arm
+## ARM... wait no, an arm!
 
 For the last 15 years I've identified myself as a climber-- a boulderer at heart. I've spent a significant amount of my life pebble wrestling, with a good bit of sport climbing mixed in. Things changed this past September when I hit a not-so-rad jump on my mountain bike and got a grade 5 AC separation-- oops. This could be considered a **catastrophic** injury for a person such as myself to face. 
 
