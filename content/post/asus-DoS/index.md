@@ -23,9 +23,9 @@ Content-Length: 1
 0
 ```
 
-Yup, that's all. I found this a while back and never dug in, all I knew is that a request body sent to `httpd` that begain with an integer would crash the web service, but I wasn't sure if this could be something more, so I sat on it for a bit until I had some time to triage it.
+Yup, that's all. I found this a while back and never dug in, all I knew is that a request body sent to `httpd` that began with an integer would crash the web service, but I wasn't sure if this could be something more, so I sat on it for a bit until I had some time to triage it.
 
-Using the Asus Merling-ng firmware, I set up an instance to perform some user emulation of the `httpd` bin and fuzzed using AFL with grammar mutators to see if I could generate any unique crashes. AFL of course generated some wild results, and plenty of crashes-- none of which were particularly "unique".
+Using the [Asus Merling-ng firmware](https://github.com/RMerl/asuswrt-merlin.ng/), I set up an instance to perform some user emulation of the `httpd` bin and fuzzed using AFL with grammar mutators to see if I could generate any unique crashes. AFL of course generated some wild results, and plenty of crashes-- none of which were particularly "unique".
 
 ### Core Dumps
 
