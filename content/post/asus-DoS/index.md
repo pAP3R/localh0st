@@ -1,5 +1,5 @@
 ---
-title: "Asus - Unauthenticated httpd DoS Conditions"
+title: "Asus - Unauthenticated DoS Conditions in httpd"
 date: 2023-07-15T11:16:12Z
 draft: true
 tags: ["notes"]
