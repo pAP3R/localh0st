@@ -11,9 +11,9 @@ Also, even though the watchdog restarts the service, it remains possible to just
 
 # Unauthenticated DoS Conditions in Asus `httpd`
 
-First up, CVE-2023-34359
+First up, CVE-2023-34358
 
-## CVE-2023-34359 PoC
+## CVE-2023-34358 PoC
 
 ```http
 GET / HTTP/1.0
@@ -167,7 +167,7 @@ int do_json_decode(struct json_object *root)
 
 So, that makes sense... mostly. `json_object_object_foreach` bails as there's no key-value-pair. Now, why does it bork when sent `0=0`? idk, and I don't care. That's for another day, with a more interesting bug.
 
-## CVE-2023-34360 PoC
+## CVE-2023-34359 PoC
 
 If you thought the first one was simple:
 
