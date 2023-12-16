@@ -49,7 +49,7 @@ These aren't in any particular order... also, pretty much anything from [Project
 
 2. Review DNS records
 	- MX, SPF, etc. These records may point to externally managed stuff, but they might also point towards a client owned host
-        - `dig -txt aon.com`
+        - `dig txt aon.com`
 
 3. Determine if M365 managed or federated org-- tools like AADInternals can be used to gather a good amount of info:
 	- `Invoke-AADIntReconAsOutsider -Domain "aon.com" | Format-Table`
