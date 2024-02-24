@@ -2,7 +2,7 @@
 title: "Unauthenticated DoS Conditions in Asus httpd"
 date: 2023-07-15T11:16:12Z
 draft: true
-tags: ["notes"]
+tags: ["notes research cve"]
 ---
 
 Recently I came across a few exploitable DoS conditions in Asus `httpd` while doing some fuzzing. Although these aren't the most impactful bugs (the Asus watchdog process restarts `httpd` anytime it detects a crash) they can be exploited unauthenticated. 
