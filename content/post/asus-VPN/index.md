@@ -1,19 +1,19 @@
 ---
 title: "Info Leak / DoS Conditions in Asus Advanced OpenVPN"
-date: 2024-02-24T16:03:30Z
+date: 2024-02-20T16:03:30Z
 draft: true
 tags: ["notes research cve"]
 ---
 
 ## Asus, back at it again with the format strings - CVE-2023-41349
 
-Last year I came across some weird format string issues in Asus's "Advanced OpenVPN Configuration" functionality. I sent the bugs to Asus for a fix 2023/05/15, around the same time I submitted a few other [exploitable DoS conditions](../asus-DoS/index.md). I never heard back about the CVE assignment and remembered today, nearing a year later. 
+Last year I came across some weird format string issues in Asus's "Advanced OpenVPN Configuration" functionality. I sent the bugs to Asus for a fix 2023/05/15, around the same time I submitted a few other [exploitable DoS conditions](../asus-dos/). I never heard back about the CVE assignment and remembered today, nearing a year later. 
 
-Anyway, here are the details-- these ones are pretty funny because they not only DoS'd the VPN service, they straight up power cycled the device and borked the VPN service LOL. Fixing it after the DoS required clearing the values from nvram, otherwise the VPN service was permanently down and unable to start, ha!
+Anyway, here are the details-- these ones are pretty funny because they not only DoS'd the VPN service, they straight up power cycled the device LOL. Fixing it after the DoS required clearing the values from nvram, otherwise the VPN service was *permanently down* and unable to start, ha!
 
 ### Information Leakage / DoS via Dangerous Format String Usage
 
-This might've actually been exploitable, but due to the power cycle of the device it was brutally difficult to track down, so I got lazy. Here are the details of the disclosures. It appeared possible to write memory to arbitrary locations withe the `%n` parameter, but the effort required for an authenticated exploit that resulted in a full reboot everytime it failed was too much for me to care.
+This might've actually been exploitable, but due to the power cycle of the device it was brutally difficult to track down, so I got lazy. Here are the details of the disclosures. It appeared possible to write memory to arbitrary locations with the `%n` parameter, but the effort required for an authenticated exploit that *resulted in a full reboot everytime it failed* was too much for me to care.
 
 #### Description:
 Dangerous format string usage was identified within POST requests made to `/start_apply.htm` for configuration of the OpenVPN server. It is possible to include format specifiers within the `vpn_server_custom`, `vpn_server_cipher`, and `vpn_server_digest` POST parameters, which will be parsed and written to the `/etc/openvpn/server1/config.ovpn` and `client.ovpn` files. 
