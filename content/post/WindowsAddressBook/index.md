@@ -1,5 +1,5 @@
 ---
-title: "CWD DLL Hijacks in Windows Contacts"
+title: "DLL Hijacks in Windows Contacts"
 date: 2024-03-18T02:08:42Z
 draft: true
 tags: ["notes research"]
