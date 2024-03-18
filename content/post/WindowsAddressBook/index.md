@@ -94,6 +94,6 @@ You might think:
 
     "why don't you just run an exe if you can place something on disk?" 
 
-You could definitely do that, but in the land age of telemetry, reducing *any footprint* is potentially useful. Running a Microsoft *signed* executable shouldn't set off any alarms immediately, which in turn might help prevent high fidelity detections. A scheduled task that also **seems relevant** to what the signed binary is actually doing may further disguise this persistence mechanism, and blue teams may not (hopefully) identify the true malicious nature of the task, deferring to it's apparent legitimacy.
+You could definitely do that, but in the land and age of telemetry, reducing *any footprint* is potentially useful. Running a Microsoft *signed* executable shouldn't set off any alarms immediately, which in turn might help prevent high fidelity detections. A scheduled task that also **seems relevant** to what the signed binary is actually doing may further disguise this persistence mechanism, and blue teams may not (hopefully) identify the true malicious nature of the task, deferring to it's apparent legitimacy.
 
 Anyway, lots of cheeky ways of going about this, some more useful than others. I'll take anything to keep the EDR at bay during ops, though!
