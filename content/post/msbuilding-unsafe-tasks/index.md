@@ -86,7 +86,7 @@ Time Elapsed 00:00:00.15
 So, imagine now that you think "Hey wouldn't it be cool to make a dropper that launches msbuild and  execs my c00l warez?" and then some time later, when the cyber cops are detecting your c00l payloads you think "man I should really update my msbuild dropeprs with a cool new process injection variant like that one the [safebreach guys discovered](https://github.com/SafeBreach-Labs/PoolParty)" lol
 
 A quick test (it's not actually unsafe):
-```C#
+```Csharp
 public override bool Execute()
 {
   unsafe{
@@ -109,7 +109,7 @@ You might think the fix is simple: `msbuild /unsafe task.xml`, but you'd be wron
 `msbuild` calls `csc.exe`-- presumably, supplying the switch to `csc.exe` will compile successfully. Side note, what's in that `.cmdline` file? Turns out it's a temporary file created by msbuild. I found a [specterops article](https://posts.specterops.io/documenting-and-attacking-a-windows-defender-application-control-feature-the-hard-way-a-case-73dd1e11be3a) that mentions it. In the article, Matt runs `while ($true) { ls $Env:TEMP\*.cmdline | cp -Destination C:\Test\ }` in a PS session while compiling with msbuild.
 
 Output:
-```
+```powershell
 /t:library /utf8output /R:"C:\WINDOWS\Microsoft.Net\assembly\GAC_MSIL\Microsoft.Build.Utilities.v4.0\v4.0_4.0.0.0__b03f5f7f11d50a3a\Microsoft.Build.Utilities.v4.0.dll" /R:"C:\WINDOWS\Microsoft.Net\assembly\GAC_MSIL\Microsoft.Build.Framework\v4.0_4.0.0.0__b03f5f7f11d50a3a\Microsoft.Build.Framework.dll" /R:"C:\WINDOWS\Microsoft.Net\assembly\GAC_MSIL\System.Core\v4.0_4.0.0.0__b77a5c561934e089\System.Core.dll" /R:"C:\WINDOWS\Microsoft.Net\assembly\GAC_MSIL\System\v4.0_4.0.0.0__b77a5c561934e089\System.dll" /out:"C:\Users\Howard\AppData\Local\Temp\cmmkcghg.dll" /D:DEBUG /debug+ /optimize-  "C:\Users\Howard\AppData\Local\Temp\cmmkcghg.0.cs"
 ```
 
