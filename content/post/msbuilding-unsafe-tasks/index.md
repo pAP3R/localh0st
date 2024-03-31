@@ -152,7 +152,7 @@ It's a bit finnicky to get this to work-- msbuild errors are cryptic, and troubl
 
 First, a screenshot:
 
-![alt text](image.png)
+![alt text](images/poc-1.png)
 
 and, the code:
 
