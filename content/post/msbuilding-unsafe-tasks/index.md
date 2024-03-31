@@ -150,11 +150,11 @@ It's a bit finnicky to get this to work-- msbuild errors are cryptic, and troubl
 
 ### PoC
 
-First, a screenshot:
+First, a screenshot. The code builds, runs msbuild `Execute()`, then compiles and executes the dynamic C# and unafe code block!
 
 ![alt text](images/poc-1.png)
 
-and, the code:
+and, the task code itself:
 
 ```C#
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
