@@ -156,7 +156,7 @@ First, a screenshot. The code builds, runs msbuild `Execute()`, then compiles an
 
 and, the task code itself:
 
-```C#
+```xml
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 <Target Name="TestTask">
 <TestTask />
