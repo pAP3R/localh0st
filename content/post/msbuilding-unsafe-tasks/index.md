@@ -259,11 +259,11 @@ PS C:\> while ($true) { cat $Env:TEMP\*.cmdline -ErrorAction SilentlyContinue }
 /t:library /utf8output /out:"C:\Users\Howard\AppData\Local\Temp\v4kj4ex5.dll" /debug- /optimize+ /unsafe  "C:\Users\Howard\AppData\Local\Temp\v4kj4ex5.0.cs"
 ```
 
-In the above output, the first file, `ahqtg2kh.cmdline` is generated for the first bit of code, the actual inline task being executed / compiled. The second file that's printed though, `v4kj4ex5.cmdline` finally gets to the bottom of it all, as it's generated for the dynamic C# execution:
+In the above output, the first file, `ahqtg2kh.cmdline` is generated for the first bit of code, the actual inline task being executed / compiled. The second file that's printed though, `v4kj4ex5.cmdline`, finally gets to the bottom of it all, as it's generated for the dynamic C# execution:
 
 `/t:library /utf8output /out:"C:\Users\Howard\AppData\Local\Temp\v4kj4ex5.dll" /debug- /optimize+ /unsafe  "C:\Users\Howard\AppData\Local\Temp\v4kj4ex5.0.cs"`
 
-As hoped, `/unsafe` is passed down to `csc.exe`! All thanks to our good friend reflection.
+As hoped, `/unsafe` is passed down to `csc.exe`-- just indirectly! All thanks to our good friend reflection.
 
 Now, go forth and execute inline tasks the cool, unsafe way ;)
 
