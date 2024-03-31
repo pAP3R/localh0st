@@ -119,7 +119,7 @@ There may be some ability to pass in arguments like `/p:AllowUnsafeBlocks=true` 
 
 Alright bigger picture: attempting to make an msbuild task perform some sort of process injection, process hollowing for instance. I might be able to safety-fy stuff but there's no promises that will work for everything. `Sharphollower` appears to be an aptly named C# port of process hollowing routines, so pretty relevant. Take a look at the [code beginning at line 218](https://github.com/Pickfordmatt/SharpHollower/blob/master/SharpHollower/Program.cs#L218):
 
-```C#
+```Csharp
 public void CopyShellcode(byte[] buf)
 {
     long lsize = size_;
