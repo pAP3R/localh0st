@@ -33,15 +33,15 @@ namespace TaskXML
     {
         public static void Run()
         {
-            Console.WriteLine(""[!] 'Run()' entered"");
+            Console.WriteLine("[!] 'Run()' entered");
             unsafe
             {
-                Console.WriteLine(""[!] unsafe block entered"");
+                Console.WriteLine("[!] unsafe block entered");
                 int x = 1;
                 int* ptr;
                 ptr = &x;
 
-                Console.WriteLine(""[!] unsafe pointer usage. x = {0}"", *ptr); 
+                Console.WriteLine("[!] unsafe pointer usage. x = {0}", *ptr); 
             }
         }
     }
