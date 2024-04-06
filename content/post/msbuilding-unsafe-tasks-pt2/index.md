@@ -1,6 +1,6 @@
 ---
 title: "Msbuild'ing Unsafe Tasks - Pt. 2"
-date: 2024-04-04T00:08:36Z
+date: 2024-04-06T12:08:36Z
 draft: true
 tags: ["notes redteam msbuild malware unsafe"]
 ---
@@ -13,7 +13,7 @@ The goal of this technique is to allow the `unsafe` keyword to be used when buil
 
 ## MSBuild Task Challenges
 
-Harsh reality about "malicious" tasks is that they're *dropped to disk* and run against `msbuild.exe`. It doesn't really matter how advanced the code is; undetectable by EDR, disguised as a legitimate updater, etc. Once it's on disk, a sample can be easily reversed to understand what types of nefarious activities are taking place. Even if your sample does some cheeky keying before executing, the protection might just be worthless if an analyst can just *modify the task themself*, then exec it. From an evasion perspective, it's ideal to protect the actual techniques used in the payload, right? If Derek from the SOC finds your cool injection technique in 15 seconds because they just opened the file and read the source, that sucks. 
+The harsh reality about "malicious" tasks is that they're *dropped to disk* and run against `msbuild.exe`. It doesn't really matter how advanced the code is; undetectable by EDR, disguised as a legitimate updater, etc. Once it's on disk, a sample can be easily reversed to understand what types of nefarious activities are taking place. Even if your sample does some cheeky keying before executing, the protection might just be worthless if an analyst can just *modify the task themself*, then exec it. From an evasion perspective, it's ideal to protect the actual techniques used in the payload, right? If Derek from the SOC finds your cool injection technique in 15 seconds because they just opened the file and read the source, that sucks. 
 
 In typical MSBuild tasks it's common to encrypt the shellcode bytes, then decrypt them at execution via some key. While this ensures the (likely) beacon can't be signatured, generally the meat of the exploit is what *runs* that payload... which is still cleartext lol.
 
