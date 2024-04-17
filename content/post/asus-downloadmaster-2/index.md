@@ -531,4 +531,4 @@ So there's actually WAY fewer libraries to work with in terms of ROP, but that m
 Now we need to determine where we are in memory, but we can't hardcode any memory addresses due to the ephemeral nature of the process and the fact that it will probably change. Running ropper against a few of the libraries, namely `libuClibc-1.0.15.so` and `dm_apply.cgi` gives us some options, but no easy wins like we'd maybe see in i386, like `jmp esp`, lol. 
 
 asus_lighttpd sits at a constant 0x0000xxxx so if we can find a useable gadget within it to use for 
-`0x0001b240: push {r0, r1, r2, lr}; strb r3, [sp, #4]; mov r3, sp; bl #0x1b0f0; add sp, sp, #0xc; pop {pc}; ``
+`0x0001b240: push {r0, r1, r2, lr}; strb r3, [sp, #4]; mov r3, sp; bl #0x1b0f0; add sp, sp, #0xc; pop {pc};`
