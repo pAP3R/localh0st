@@ -11,7 +11,7 @@ something something a cve horse in the mouth
 
 Remember back in the early 2000s, when download managers were all the rage? Well, turns out in 2024 Asus *still* has a product, aptly named "Download Master". This "app" installs to a USB device on your router. As it turns out, it's actually a full on linux environment running `busybox`... that's installed onto your USB stick, lol. 
 
-DM, as I'll refer to it henceforth, was *riddled* with issues-- classic low-hanging bugs that you don't expect to see outside of a CTF. Since this isn't natively on the routers it's not as big a deal, and Shodan reports only around ~2.9k devices worldwide, and Censys about the same:
+DM, as I'll refer to it henceforth, was *riddled* with issues-- classic low-hanging bugs that you don't expect to see outside of a CTF. Since this isn't natively on the routers it's not as big a deal. Shodan reports only around ~2.9k devices worldwide, and Censys about the same:
 
 ![alt text](images/shodan-dm.png)
 
