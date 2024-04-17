@@ -25,7 +25,7 @@ In my cursory prodding, I came across the following bug types, note that they ar
 
 For this post I'll review 1 - 3, and a part two will contain the fun ones.
 
-## Reflected XSS - CVE-
+## Reflected XSS - CVE-2024-31159
 
 Endpoint: `/check.asp`
 
@@ -90,7 +90,7 @@ self.location = "https://" +directurl_host	+ url;
 **Screenshot:**
 ![alt text](images/reflected-xss.png)
 
-## Stored XSS - CVE-
+## Stored XSS - CVE-2024-31160
 
 Endpoint: `/downloadmaster/dm_apply.cgi`
 
@@ -144,7 +144,7 @@ Content-Length: 113
 Screenshot:
 ![alt text](images/stored-xss.png)
 
-## Arbitrary Uploads / Path Traversal - CVE-
+## Arbitrary Uploads / Path Traversal - CVE-2024-31161
 
 Endpoint: `/downloadmaster/dm_uploadbt.cgi`
 

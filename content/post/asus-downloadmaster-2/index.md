@@ -9,7 +9,7 @@ tags: ["notes research cve asus"]
 
 Alright so here are the fun ones: command injections and buffer overflows.
 
-## Command Injections - CVE-
+## Command Injections - CVE-2024-31162
 
 URL Path parameters are not sanitized prior to their inclusion within `system()` calls, resulting in the ability for authenticated users to perform command injection attacks.
 	
@@ -112,7 +112,7 @@ Set up a listener and send a classic `nc -e /bin/bash`
 
 gottem
 
-## Buffer Overflows - CVE-
+## Buffer Overflows - CVE-2024-31163
 
 This one was much more involved than the other bugs and required a lot more effort. I've opted to just include my raw notes, rather than a polished post-mortem. As such, some shit I wrote at the time is just wrong, but it's psuedo stream-of-consciousness note taking, so that's how it works.
 
