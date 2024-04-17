@@ -1,5 +1,5 @@
 ---
-title: "Asus Download Master - Pt 2: Command Injections, BoFs"
+title: "Asus Download Master - Part 2: Command Injections, BoFs"
 date: 2024-04-16T18:26:23Z
 draft: true
 tags: ["notes research cve asus"]
