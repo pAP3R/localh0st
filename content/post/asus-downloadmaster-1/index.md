@@ -1,6 +1,6 @@
 ---
 title: "Asus Download Master - Part 1: XSS, Uploads"
-date: 2024-02-23T17:26:23Z
+date: 2024-04-16T17:26:23Z
 draft: true
 tags: ["notes research cve asus"]
 ---
