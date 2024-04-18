@@ -457,6 +457,8 @@ Woot
 
 I also wrote it so that the payload can sit BEFORE the initial PC overwrite, as that might start / end with a null
 
+### Making it to portable?...
+
 Good idea:
 
 Partial overwrite of PC = `A*2332 + \x42\x42` = ` ► f 0 0xff004242` = Partial PC Overwrite = ASLR bypass?
@@ -532,3 +534,8 @@ Now we need to determine where we are in memory, but we can't hardcode any memor
 
 asus_lighttpd sits at a constant 0x0000xxxx so if we can find a useable gadget within it to use for 
 `0x0001b240: push {r0, r1, r2, lr}; strb r3, [sp, #4]; mov r3, sp; bl #0x1b0f0; add sp, sp, #0xc; pop {pc};`
+
+
+### Long story short
+
+This one was hard and I reported it before getting a workable exploit outside of gdb. ASLR and the literally, 19 forks, were a real problem and I didn't have a good solution at the time. I just stopped taking notes at the end as I tried different things, but couldn't pull this one off!
