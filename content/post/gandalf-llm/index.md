@@ -1,6 +1,6 @@
 ---
 title: "Gandalf LLM / Prompt Injection"
-date: 2024-04-20T17:24:56Z
+date: 2024-04-20T01:24:56Z
 draft: true
 tags: ["notes ctf ai"]
 ---
