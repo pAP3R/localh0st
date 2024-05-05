@@ -41,9 +41,6 @@ xhttp.send();
 
 Now, request the page in your fav browser :^)
 
-endpoint:
-`http://192.168.32.129/test.html`
-
 ```http
 HTTP/1.1 200 OK
 Date: Tue, 30 Apr 2024 15:26:20 GMT
