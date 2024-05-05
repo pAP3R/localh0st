@@ -1,5 +1,5 @@
 ---
-title: "Burp Case Sensitivities"
+title: "When BurpSuite Lies"
 date: 2024-05-05T17:39:06Z
 draft: true
 tags: ["notes burp bug"]
@@ -27,7 +27,7 @@ I wondered if somehow this behavior (overwriting legitimate responses with garbo
 
 Think about it: if a request for the *same page* the user / tester is on is made, but with a single letter of a different case, well... burp's gonna overwrite it in the site map. Sure, it'll be in the proxy and logger, but who cares! You can effectively *hide your responses by overwriting them* lol!
 
-As a little test case / PoC, spin up an Apache server and create a `test.html`. Within it, add and xhr:
+As a little test case / PoC, spin up an Apache server and create a `test.html`. Within it, add an xhr:
 ```js
 var xhttp = new XMLHttpRequest();
 xhttp.onreadystatechange = function() {
