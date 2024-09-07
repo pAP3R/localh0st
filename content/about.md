@@ -82,9 +82,13 @@ Publishing: TBD
 
 ### Microsoft
 
-Feb 29, 2024 "acknowledgement" in online services for Teams SSRF
+1x Feb 29, 2024 "acknowledgement" in online services for Teams SSRF (n0rthw4rd)
 - https://msrc.microsoft.com/update-guide/acknowledgement/
 - https://localh0st.run/post/teams-ssrf/
 
-More incoming from MS.
+1x Mar 31, 2024 "acknowledgement" in online services (n0rthw4rd)
+
+1x Mar 31, 2024 "acknowledgement" in online services for SSRF in Office apps (Word, Excel, PowerPoint)
+
+1x Mar 31, 2024 "acknowledgement" in online services for SSRF in Office Search services
 
