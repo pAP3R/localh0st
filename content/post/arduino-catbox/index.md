@@ -204,9 +204,9 @@ Here's the initial prototype-- lots of jumpers here...
 
 ![prototype-1](images/proto-1.png)
 
-"Finalized" version:
+"Finalized" version, a bit rough but it works:
 
-![prototype-2](images/proto-2.png)
+![prototype-2](images/proto-2.jpg)
 
 With a soldered board, it was just a matter of figuring out how to mount the fan and filter in a way that made sense.
 
