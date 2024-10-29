@@ -18,7 +18,7 @@ It sucks, but it's actually not the first time it's happened to me, in similar f
 
 ### SSRF Details
 
-The SSRF wasn't complex, a URL path parameter caused an HTTP request to arbitrary domains, but it was restricted to image files and responded with 405's and a `Content-Type not allowed` response body for anything but. While it could only retrieve image contents.
+The SSRF wasn't complex, a URL path parameter caused an HTTP request to arbitrary domains, but it was restricted to image files and responded with 405's and a `Content-Type not allowed` response body for anything but.
 
 Here's a poc request:
 ```
