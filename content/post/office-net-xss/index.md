@@ -11,10 +11,10 @@ Obviously, the report had reproduction steps. So I replied, directing them to *t
 
 It sucks, but it's actually not the first time it's happened to me, in similar form, so I filed it back into my pile of orphaned MS bugs and ended up looking back at it again a week later. 
 
-*Once, I had a report for a bug in Teams get automatically closed, receiving a response about it not meeting criteria for bugs in Bing. After asking what the fuck Bing had to do with anything I got:*
+*Once, I had a report for a bug in Teams get automatically closed, and got a response about it not meeting criteria for bugs in Bing. After asking what the fuck Bing had to do with anything, I received:*
 > "There seems like there may have been a mix-up on our end. You are correct, this case does not deal with BingAI" 
 
-*No joke. They later paid out $5,000 for this disclosure.*
+*No joke. They later paid out $5,000 for that disclosure.*
 
 ### SSRF Details
 
