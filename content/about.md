@@ -66,8 +66,7 @@ Buffer overflows in Asus Download Master
 
 ### Jitbit HelpDesk
 
-#### XSS, Reflected and Stored
-Publishing: TBD
+#### XSS, Reflected and Stored (Publishing: TBD)
 - CVE-2023-29648
 - CVE-2023-29649
 - CVE-2023-29650
@@ -79,7 +78,6 @@ Publishing: TBD
 - CVE-2023-34560
 
 ### Microsoft
-
 - Feb 29, 2024 "acknowledgement" in online services for Teams SSRF (n0rthw4rd) - $5k bounty
     - https://msrc.microsoft.com/update-guide/acknowledgement/
     - https://localh0st.run/post/teams-ssrf/
