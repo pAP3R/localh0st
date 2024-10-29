@@ -10,8 +10,6 @@ I am a Technical Manager for Aon's Cyber Solutions, where I primarily perform re
 
 ### Accolades / CVEs / Stuff
 
-A list of my CVEs :)
-
 #### CVE-2021-20595
 Mitsubishi XXE / DoS
 - https://www.aon.com/cyber-solutions/aon_cyber_labs/cve-2021-20595-unauthenticated-xxe-in-multiple-mitsubishi-electric-air-conditioner-control-systems/
@@ -66,7 +64,7 @@ Command injections in Asus Download Master
 Buffer overflows in Asus Download Master
 - https://localh0st.run/post/asus-downloadmaster-2/
 
-### Jitbit CVEs
+### Jitbit HelpDesk
 
 #### XSS, Reflected and Stored
 Publishing: TBD
@@ -82,13 +80,18 @@ Publishing: TBD
 
 ### Microsoft
 
-1x Feb 29, 2024 "acknowledgement" in online services for Teams SSRF (n0rthw4rd)
-- https://msrc.microsoft.com/update-guide/acknowledgement/
-- https://localh0st.run/post/teams-ssrf/
+- Feb 29, 2024 "acknowledgement" in online services for Teams SSRF (n0rthw4rd) - $5k bounty
+    - https://msrc.microsoft.com/update-guide/acknowledgement/
+    - https://localh0st.run/post/teams-ssrf/
 
-1x Mar 31, 2024 "acknowledgement" in online services (n0rthw4rd)
+- Mar 31, 2024 "acknowledgement" in online services (n0rthw4rd)
 
-1x Mar 31, 2024 "acknowledgement" in online services for SSRF in Office apps (Word, Excel, PowerPoint)
+- Mar 31, 2024 "acknowledgement" in online services for SSRF in Office apps (Word, Excel, PowerPoint) - $5k bounty
+    - Aon publishing TBD
 
-1x Mar 31, 2024 "acknowledgement" in online services for SSRF in Office Search services
+- Mar 31, 2024 "acknowledgement" in online services for SSRF in Sharepoint
+    - Aon publishing TBD
+
+- Apr 30, 2024 "acknowledgement" in online services for SSRF in Office Search services - $5k bounty
+    - Aon publishing TBD
 
