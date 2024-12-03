@@ -7,7 +7,7 @@ tags: ["nuance", "ssrf", "ai", "msrc"]
 
 I submitted another HTTP SSRF in MS services via MSRC recently, this time within an insecure `api.php` endpoint I found on `train.digital.nuance.com`. 
 
-This was a full HTTP SSRF, capable of interacting with internal services, could be used for both GET and POST requests, including sending full POST bodies with arbitrary parameter/value pairs. This SSRF was also CSRF-able, and also resulted exfiltration of user authentication tokens in the form of JWTs.
+This was a full HTTP SSRF, capable of interacting with internal services, and could be used for both GET and POST requests, including sending full GET/POST bodies with arbitrary parameter/value pairs to arbitrary resources.
 
 ## Bounty?
 None. A few weeks after submission, MS responded that they confirmed the bug, were investigating the issue, and asked for any more information I could provide. At this time I dug in a little bit more, finding the ability to submit full POST requests with bodies and arbitrary params. They didn't reply, and closed the case.
