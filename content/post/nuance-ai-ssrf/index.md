@@ -20,7 +20,7 @@ Anyway, here are the details.
 
 ## api.php
 
-While performing some recon against MS infra, I came across an interesting site, `train.digital.nuance.com`, that appeared to be an online chat testing application. This app let users to connect to virtual "Agents" and interact with them and judging by the aptly named domain, it seemed likely this platform was intended to be used to train AI agents for Nuance, a Microsoft owned conversational AI.
+While performing some recon against MS infra, I came across an interesting site, `train.digital.nuance.com`, that appeared to be an online chat testing application. This app let users to connect to virtual "Agents" to interact with them. Judging by the aptly named domain, it seemed likely this platform was intended to be used to train AI agents for Nuance, a Microsoft owned conversational AI.
 
 Most of the traffic sent to the app were POSTs to an `api.php` endpoint, and contained several suspicious body params:
 - `body`
@@ -29,7 +29,7 @@ Most of the traffic sent to the app were POSTs to an `api.php` endpoint, and con
 - `params`, and
 - `type`
 
-Flipping the `domain` parameter to a burp collab server, the app sent the request and it turned out to be a full HTTP SSRF, response and everything. After playing with params the following PoC was reasonable enough to demonstrate some behavior.
+Flipping the `domain` parameter to a burp collab server, the app sent a request to th collab, which turned out to be a full HTTP SSRF, response and everything. After playing with params the following PoC was reasonable enough to demonstrate some nasty behavior.
 
 ![request-response](<Pasted image 20241027220537.png>)
 
@@ -42,7 +42,9 @@ A few things about the request / responses above:
 3. A POST is received by the collab (cool), but data in the `body` param wasn't sent... note that it was `{}` by default
 4. The request was CSRF-able
 
-I found it was also possible to interact with internal resources, such as VM metadata URLs, `http://169.254.169.254/xxx`. This could be inferred from application responses which included the error codes of the SSRF request itself should the SSRF fail, a useful mechanism for my purposes. Unfortunately, it wasn't possible to return data from the metadata URLs, as there wasn't a way to inject the required headers into the SSRF request (`metadata: true`). This, at least, provided some nice proof that interaction with local / internal resources was possible.
+I found it was also possible to interact with internal resources, such as VM metadata URLs, `http://169.254.169.254/xxx`. This could be inferred from application responses that included the error codes of the SSRF itself, should the SSRF fail. A useful mechanism for my purposes. Unfortunately, it wasn't possible to return data from the metadata URLs, as there wasn't a way to inject the required headers into the SSRF request (`metadata: true`). 
+
+This, at least, provided some nice proof that interaction with local / internal resources was possible.
 
 ## Elevating the issue
 
