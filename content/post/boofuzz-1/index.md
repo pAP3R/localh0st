@@ -7,7 +7,7 @@ tags: ["notes"]
 
 ## boofuzz
 
-It's been a bit since I did much fuzzing, and recently at work I was tasked with fuzzing some medical device protocols-- HL7, ASTM and POCT1A. In reality, I was tasked with testing a thick client that ingested those protocols through various sources. It was a bit of a strange set up, and ended up requiring me to fuzz over the network, as the serialized protocols were being transported over TCP and various other reasons.
+It's been a bit since I did much fuzzing, and recently at work I was tasked with fuzzing some medical device protocols-- HL7, ASTM and POCT1A for a device that was ingesting them. It was a bit of a strange set up, and ended up requiring me to fuzz over TCP.
 
 In an ideal fuzzing scenario, you're *definitely not* fuzzing over the network, as that requires interacting with the network stack and everything that comes with it... creating sockets, sending data, waiting for responses, closing sockets, etc. Then looping that. All this to say: it's (very) slow. A best case scenario is having source, and changing the app to instead take input from stdin. 
 
