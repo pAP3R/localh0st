@@ -118,9 +118,9 @@ index 4712dc8..69cbaf1 100644
          else:
 ```
 
-Now, boofuzz will calculate a checksum of the `frame` block and append it after the `ETX`. From here, the actual ASTM frame data can be broken into it's component parts and fuzzed. 
+Now, boofuzz will calculate a checksum of the `frame` block and append it after the `ETX`.
 
-Here's a full example script for fuzzing ASTM frames with boofuzz.
+Here's a full example script for fuzzing ASTM frames with boofuzz. From here, the actual ASTM frame data can be broken into the component fields and fuzzed individually. 
 
 ```python
 #!/usr/bin/env python3
