@@ -17,9 +17,9 @@ Of the three protocols I was poking at, only one required a checksum, and althou
 
 ## Checksums with boofuzz
 
-boofuzz supports the `Checksum()` function (essentially a data type), that can be used to create a checksum of one or two bytes width. Checksums accept a block as an argument, so using them is crucial for the proper calculation.
+boofuzz supports the `Checksum()` function (essentially a data type), that can be used to create a checksum of one or two bytes width. Checksums accept a "block" as an argument, so using them is crucial for the proper calculation. 
 
-Here's an example:
+The script below doesn't do anything besides generate a checksum for a made up ASTM data frame:
 
 ```python
 from boofuzz import *
@@ -34,7 +34,8 @@ etx = b"\x03"
 end = b"\r\n"
 
 def main():
-    print(checksum_bytes(frame + etx))
+    checksum = checksum_bytes(frame + etx)
+    print("ASTM data frame checksum: " + checksum)
 
 def checksum_bytes(data):
     checksum = 0
@@ -47,9 +48,9 @@ if __name__ == "__main__":
     main()
 ```
 
-Running this produces a result of `7e` for that frame. Assembling an ASTM packet is then trivial, `stx + frame + etx + checksum + end`
+Running this produces a result of `7e` for that frame. Assembling an ASTM packet is then trivial, `stx + frame + etx + checksum + end`.
 
-This can be converted into a boofuzz script easily as well, as the packet sections can be treated as blocks. In `main()` boofuzz will be initialized:
+It also has everything needed to make a boofuzz script off of, as the packet sections can be treated as blocks. In `main()` boofuzz will be initialized:
 
 ```python
 def main():
