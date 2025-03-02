@@ -6,7 +6,7 @@ draft: true
 
 Hello, I'm Howard, an athlete and cyber security researcher.
 
-I am a Technical Manager for Aon's Cyber Solutions, where I primarily perform red teams, web application testing and pretty much everything else... I spend my spare time running, hiking and researching.
+I am a Technical Manager for Aon's Cyber Solutions, spending my days hacking on everything under the sun. I spend my spare time running, hiking and doing security research.
 
 ### Accolades / CVEs / Stuff
 
@@ -78,18 +78,22 @@ Buffer overflows in Asus Download Master
 - CVE-2023-34560
 
 ### Microsoft
-- Feb 29, 2024 "acknowledgement" in online services for Teams SSRF (n0rthw4rd) - $5k bounty
+- 2023 Q4 MSRC Office Leaderboards
+    - https://msrc.microsoft.com/blog/2024/01/congratulations-to-the-top-msrc-2023-q4-security-researchers/
+
+- Feb 2024 acknowledgement in online services for Teams SSRF (n0rthw4rd) - $5k bounty
     - https://msrc.microsoft.com/update-guide/acknowledgement/
     - https://localh0st.run/post/teams-ssrf/
 
-- Mar 31, 2024 "acknowledgement" in online services (n0rthw4rd)
+- Mar 2024 acknowledgement in online services (n0rthw4rd)
 
-- Mar 31, 2024 "acknowledgement" in online services for SSRF in Office apps (Word, Excel, PowerPoint) - $5k bounty
+- Mar 2024 acknowledgement in online services for SSRF in Office apps (Word, Excel, PowerPoint) - $5k bounty
     - Aon publishing TBD
 
-- Mar 31, 2024 "acknowledgement" in online services for SSRF in Sharepoint
+- Mar 2024 acknowledgement in online services for SSRF in Sharepoint
     - Aon publishing TBD
 
-- Apr 30, 2024 "acknowledgement" in online services for SSRF in Office Search services - $5k bounty
+- Apr 2024 acknowledgement in online services for SSRF in Office Search services - $5k bounty
     - Aon publishing TBD
 
+- Jan 2025 Reflected XSS - $3k bounty
