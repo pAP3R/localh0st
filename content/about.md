@@ -14,6 +14,7 @@ I spend my spare time running, hiking, climbing and hacking.
 
 ### Microsoft
 CVEs: CVE-2026-20854, CVE-2026-20929, CVE-2026-26155, CVE-2026-26160, CVE-2026-32071, CVE-2026-26159, CVE-2026-34339
+
 Acknowledgements: 2023 Q4 MSRC Office leaderboards. Multiple 2024 and 2025 bounties and aknowledgements in Online Services-- SSRFs, XSS.
 
 - Windows Local Security Authority Subsystem Service (LSASS) Remote Code Execution Vulnerability. 
